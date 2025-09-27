@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>视频分数可视化</title>
+    <title>Video Score Visualization</title>
     <style>
         * {
             margin: 0;
@@ -92,7 +92,7 @@
             color: #4facfe;
         }
 
-        .threshold-input {
+        .control-input {
             padding: 12px 16px;
             border: 2px solid #dee2e6;
             border-radius: 8px;
@@ -101,7 +101,7 @@
             transition: all 0.3s ease;
         }
 
-        .threshold-input:focus {
+        .control-input:focus {
             outline: none;
             border-color: #4facfe;
             box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
@@ -113,7 +113,7 @@
             align-items: center;
         }
 
-        .view-btn {
+        .view-btn, .control-btn {
             padding: 8px 16px;
             border: 2px solid #4facfe;
             background: white;
@@ -123,7 +123,7 @@
             transition: all 0.3s ease;
         }
 
-        .view-btn.active {
+        .view-btn.active, .control-btn.active {
             background: #4facfe;
             color: white;
         }
@@ -220,12 +220,23 @@
             padding: 30px;
         }
 
-        /* 网格视图样式 */
+        /* Grid view styles */
         .video-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 20px;
             max-width: 100%;
+        }
+
+        .video-grid.cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .video-grid.cols-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .video-grid.cols-4 {
+            grid-template-columns: repeat(4, 1fr);
         }
 
         .video-card {
@@ -367,7 +378,7 @@
             color: white;
         }
 
-        /* 列表视图样式 */
+        /* List view styles */
         .video-list {
             display: none;
         }
@@ -450,10 +461,24 @@
             font-weight: bold;
         }
 
+        @media (max-width: 1200px) {
+            .video-grid.cols-4 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .video-grid.cols-3,
+            .video-grid.cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         @media (max-width: 768px) {
-            .video-grid {
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 15px;
+            .video-grid.cols-2,
+            .video-grid.cols-3,
+            .video-grid.cols-4 {
+                grid-template-columns: 1fr;
             }
             
             .control-group {
@@ -485,60 +510,80 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>视频分数可视化</h1>
-            <p>按分数排序并设置筛选阈值 - 视频自动循环播放</p>
+            <h1>Video Score Visualization</h1>
+            <p>Sorted by score with filtering threshold - Videos auto-loop</p>
         </div>
 
         <div class="controls">
             <div class="control-group">
-                <a href="index.html" class="back-btn">← 返回选择页面</a>
+                <a href="index.html" class="back-btn">← Back to Selection</a>
                 <div class="dataset-info" id="currentDatasetInfo">
-                    正在加载数据...
+                    Loading data...
                 </div>
             </div>
             
             <div class="control-group">
-                <label for="threshold">分数阈值:</label>
-                <input type="number" id="threshold" class="threshold-input" value="0.85" step="0.01" placeholder="输入阈值" min="0" max="1">
+                <label for="threshold">Score Threshold:</label>
+                <input type="number" id="threshold" class="control-input" value="0.85" step="0.01" placeholder="Enter threshold" min="0" max="1">
             </div>
 
             <div class="control-group">
-                <label>显示方式:</label>
+                <label>Display Mode:</label>
                 <div class="view-toggle">
-                    <button class="view-btn active" data-view="grid">网格视图</button>
-                    <button class="view-btn" data-view="list">列表视图</button>
+                    <button class="view-btn active" data-view="grid">Grid View</button>
+                    <button class="view-btn" data-view="list">List View</button>
                 </div>
             </div>
 
             <div class="control-group">
-                <label>页面导航:</label>
+                <label>Videos per Page:</label>
+                <select id="videosPerPage" class="control-input">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Columns per Row:</label>
+                <div class="view-toggle">
+                    <button class="control-btn" data-cols="2">2 Columns</button>
+                    <button class="control-btn active" data-cols="3">3 Columns</button>
+                    <button class="control-btn" data-cols="4">4 Columns</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Page Navigation:</label>
                 <div class="pagination-controls">
-                    <button id="prevPage" class="page-btn" disabled>上一页</button>
-                    <span id="pageInfo" class="page-info">第 1 页，共 1 页</span>
-                    <button id="nextPage" class="page-btn" disabled>下一页</button>
+                    <button id="prevPage" class="page-btn" disabled>Previous</button>
+                    <span id="pageInfo" class="page-info">Page 1 of 1</span>
+                    <button id="nextPage" class="page-btn" disabled>Next</button>
                 </div>
             </div>
             
             <div class="stats">
                 <div class="stat-card">
                     <div class="stat-number" id="totalCount">0</div>
-                    <div class="stat-label">总视频数</div>
+                    <div class="stat-label">Total Videos</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="cutCount">0</div>
-                    <div class="stat-label">标记为Cut</div>
+                    <div class="stat-label">Marked as Cut</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="averageScore">0</div>
-                    <div class="stat-label">平均分数</div>
+                    <div class="stat-label">Average Score</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="maxScore">0</div>
-                    <div class="stat-label">最高分数</div>
+                    <div class="stat-label">Max Score</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="minScore">0</div>
-                    <div class="stat-label">最低分数</div>
+                    <div class="stat-label">Min Score</div>
                 </div>
             </div>
             
@@ -548,35 +593,36 @@
         </div>
 
         <div class="video-content">
-            <!-- 网格视图 -->
-            <div id="videoGrid" class="video-grid"></div>
+            <!-- Grid view -->
+            <div id="videoGrid" class="video-grid cols-3"></div>
             
-            <!-- 列表视图 -->
+            <!-- List view -->
             <div id="videoList" class="video-list"></div>
         </div>
     </div>
 
     <script>
-        // 全局变量
+        // Global variables
         let videoData = [];
         let currentThreshold = 0.85;
         let sortedVideos = [];
         let currentView = 'grid';
         let currentPage = 1;
         let videosPerPage = 20;
+        let columnsPerRow = 3;
         let totalPages = 1;
         let selectionData = null;
 
-        // 获取基础URL
+        // Get base URL
         const baseUrl = window.location.href.split('/').slice(0, -1).join('/');
 
-        // 显示消息的函数
+        // Message display function
         function showMessage(message, type = 'info') {
             const errorDiv = document.getElementById('errorMessage');
             const successDiv = document.getElementById('successMessage');
             const loadingDiv = document.getElementById('loadingMessage');
             
-            // 隐藏所有消息
+            // Hide all messages
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
             loadingDiv.style.display = 'none';
@@ -600,11 +646,11 @@
             }
         }
 
-        // 从localStorage获取选择数据
+        // Get selection data from localStorage
         function getSelectionData() {
             const stored = localStorage.getItem('videoAnalysisSelection');
             if (!stored) {
-                showMessage('未找到选择数据，请重新选择', 'error');
+                showMessage('No selection data found, please reselect', 'error');
                 setTimeout(() => {
                     window.location.href = 'index.html';
                 }, 2000);
@@ -614,7 +660,7 @@
             try {
                 return JSON.parse(stored);
             } catch (error) {
-                showMessage('选择数据格式错误，请重新选择', 'error');
+                showMessage('Selection data format error, please reselect', 'error');
                 setTimeout(() => {
                     window.location.href = 'index.html';
                 }, 2000);
@@ -622,60 +668,63 @@
             }
         }
 
-        // 加载JSON数据
+        // Load JSON data
         async function loadJsonData() {
             if (!selectionData) return;
 
             try {
-                showMessage('正在加载数据...', 'loading');
+                showMessage('Loading data...', 'loading');
                 
-                // 构建JSON文件URL
-                const jsonUrl = selectionData.dataFileUrl || selectionData.huggingFace?.dataFileUrl;
-                console.log('正在加载JSON:', jsonUrl);
+                // Build JSON file URL
+                const jsonUrl = `${baseUrl}/dataset/${selectionData.dataset}/${selectionData.label}/${selectionData.model}.json`;
+                console.log('Loading JSON:', jsonUrl);
                 
-                // 首先检查文件是否存在
-                if (!jsonUrl) {
-                    throw new Error('未找到数据文件URL，请返回重新选择。');
-                }
-
+                // Check if file exists first
                 const response = await fetch(jsonUrl);
+                if (!response.ok) {
+                    let errorMessage = `File loading failed (HTTP ${response.status})`;
+                    if (response.status === 404) {
+                        errorMessage = `File does not exist: ${jsonUrl}\nPlease check if the file exists in this path.`;
+                    }
+                    throw new Error(errorMessage);
+                }
                 
                 const jsonData = await response.json();
                 
                 if (!jsonData) {
-                    throw new Error('JSON文件为空或格式错误');
+                    throw new Error('JSON file is empty or format error');
                 }
                 
                 processJsonData(jsonData);
                 
-                showMessage(`成功加载了 ${videoData.length} 个视频数据`, 'success');
+                showMessage(`Successfully loaded ${videoData.length} video data`, 'success');
                 
             } catch (error) {
-                console.error('加载JSON数据失败:', error);
+                console.error('Failed to load JSON data:', error);
                 
-                let errorMessage = '加载JSON数据失败: ' + error.message;
+                let errorMessage = 'Failed to load JSON data: ' + error.message;
                 
-                // 添加调试信息
-                if (error.message.includes('404') || error.message.includes('不存在')) {
-                    errorMessage += `\n\n调试信息：\n`;
-                    errorMessage += `- 数据集: ${selectionData.dataset}\n`;
-                    errorMessage += `- 标签: ${selectionData.label}\n`;
-                    errorMessage += `- 模型: ${selectionData.model}\n`;
-                    errorMessage += `- 期望路径: dataset/${selectionData.dataset}/${selectionData.label}/${selectionData.model}.json\n\n`;
-                    errorMessage += `请确保：\n`;
-                    errorMessage += `1. 该路径下确实存在JSON文件\n`;
-                    errorMessage += `2. 文件名完全匹配（区分大小写）\n`;
-                    errorMessage += `3. 文件已正确上传到服务器`;
+                // Add debug information
+                if (error.message.includes('404') || error.message.includes('does not exist')) {
+                    errorMessage += `\n\nDebug info:\n`;
+                    errorMessage += `- Dataset: ${selectionData.dataset}\n`;
+                    errorMessage += `- Label: ${selectionData.label}\n`;
+                    errorMessage += `- Model: ${selectionData.model}\n`;
+                    errorMessage += `- Expected path: dataset/${selectionData.dataset}/${selectionData.label}/${selectionData.model}.json\n\n`;
+                    errorMessage += `Please ensure:\n`;
+                    errorMessage += `1. The JSON file exists in this path\n`;
+                    errorMessage += `2. File name matches exactly (case sensitive)\n`;
+                    errorMessage += `3. File is properly uploaded to server`;
                 }
                 
                 showMessage(errorMessage, 'error');
                 
-                // 显示详细的调试面板
+                // Show detailed debug panel
                 showDebugPanel();
             }
         }
 
-        // 显示调试面板
+        // Show debug panel
         function showDebugPanel() {
             const debugPanel = document.createElement('div');
             debugPanel.className = 'debug-panel';
@@ -692,23 +741,23 @@
             const expectedUrl = `${baseUrl}/dataset/${selectionData.dataset}/${selectionData.label}/${selectionData.model}.json`;
             
             debugPanel.innerHTML = `
-                <h3 style="color: #dc3545; margin-bottom: 15px;">🔍 调试信息</h3>
-                <div><strong>当前选择：</strong></div>
+                <h3 style="color: #dc3545; margin-bottom: 15px;">🔍 Debug Information</h3>
+                <div><strong>Current selection:</strong></div>
                 <ul style="margin: 10px 0; padding-left: 20px;">
-                    <li>数据集: <code>${selectionData.dataset}</code></li>
-                    <li>标签: <code>${selectionData.label}</code></li>
-                    <li>模型: <code>${selectionData.model}</code></li>
+                    <li>Dataset: <code>${selectionData.dataset}</code></li>
+                    <li>Label: <code>${selectionData.label}</code></li>
+                    <li>Model: <code>${selectionData.model}</code></li>
                 </ul>
-                <div><strong>期望的文件路径：</strong></div>
+                <div><strong>Expected file path:</strong></div>
                 <div style="background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; word-break: break-all;">
                     <code>${expectedUrl}</code>
                 </div>
                 <div style="margin-top: 15px;">
                     <button onclick="testFileExists('${expectedUrl}')" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                        测试文件是否存在
+                        Test File Existence
                     </button>
                     <button onclick="this.parentElement.parentElement.remove()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
-                        关闭调试面板
+                        Close Debug Panel
                     </button>
                 </div>
                 <div id="testResult" style="margin-top: 10px;"></div>
@@ -717,29 +766,29 @@
             document.querySelector('.controls').appendChild(debugPanel);
         }
 
-        // 测试文件是否存在
+        // Test if file exists
         window.testFileExists = async function(url) {
             const resultDiv = document.getElementById('testResult');
-            resultDiv.innerHTML = '<div style="color: #856404;">正在测试...</div>';
+            resultDiv.innerHTML = '<div style="color: #856404;">Testing...</div>';
             
             try {
                 const response = await fetch(url, { method: 'HEAD' });
                 if (response.ok) {
-                    resultDiv.innerHTML = '<div style="color: #155724; padding: 10px; background: #d4edda; border-radius: 4px;">✅ 文件存在且可访问</div>';
+                    resultDiv.innerHTML = '<div style="color: #155724; padding: 10px; background: #d4edda; border-radius: 4px;">✅ File exists and accessible</div>';
                 } else {
                     resultDiv.innerHTML = `<div style="color: #721c24; padding: 10px; background: #f8d7da; border-radius: 4px;">❌ HTTP ${response.status}: ${response.statusText}</div>`;
                 }
             } catch (error) {
-                resultDiv.innerHTML = `<div style="color: #721c24; padding: 10px; background: #f8d7da; border-radius: 4px;">❌ 网络错误: ${error.message}</div>`;
+                resultDiv.innerHTML = `<div style="color: #721c24; padding: 10px; background: #f8d7da; border-radius: 4px;">❌ Network error: ${error.message}</div>`;
             }
         };
 
-        // 处理JSON数据
+        // Process JSON data
         function processJsonData(jsonData) {
             try {
-                // 检测JSON格式类型
+                // Detect JSON format type
                 if (jsonData.scores && Array.isArray(jsonData.scores)) {
-                    // 新格式：包含metadata和scores
+                    // New format: contains metadata and scores
                     videoData = jsonData.scores.map(item => ({
                         name: item.sample_id,
                         url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
@@ -748,7 +797,7 @@
                         error: item.error
                     }));
                 } else if (Array.isArray(jsonData) && jsonData[0]?.sample_id) {
-                    // 新格式：直接是scores数组
+                    // New format: direct scores array
                     videoData = jsonData.map(item => ({
                         name: item.sample_id,
                         url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
@@ -757,29 +806,29 @@
                         error: item.error
                     }));
                 } else {
-                    throw new Error('不支持的JSON格式。请确保数据包含sample_id和score字段。');
+                    throw new Error('Unsupported JSON format. Please ensure data contains sample_id and score fields.');
                 }
                 
-                // 应用参数过滤
+                // Apply parameter filtering
                 applyParameterFiltering();
                 updateVisualization();
                 
             } catch (error) {
-                showMessage('数据处理失败: ' + error.message, 'error');
-                console.error('数据处理错误:', error);
+                showMessage('Data processing failed: ' + error.message, 'error');
+                console.error('Data processing error:', error);
             }
         }
 
-        // 应用参数过滤
+        // Apply parameter filtering
         function applyParameterFiltering() {
             if (!selectionData) return;
 
             const { segment, maxCases } = selectionData;
             
-            // 按分数排序
+            // Sort by score
             videoData.sort((a, b) => b.score - a.score);
             
-            // 按segment分组并限制每组的案例数
+            // Group by segment and limit cases per group
             const segmentSize = Math.ceil(videoData.length * segment);
             const filteredData = [];
             
@@ -790,40 +839,40 @@
             }
             
             videoData = filteredData;
-            console.log(`应用参数过滤: segment=${segment}, maxCases=${maxCases}, 最终视频数=${videoData.length}`);
+            console.log(`Applied parameter filtering: segment=${segment}, maxCases=${maxCases}, final video count=${videoData.length}`);
         }
 
-        // 视频调试函数
+        // Video debug functions
         window.handleVideoLoadStart = function(video) {
             const status = video.parentElement.querySelector('.video-status');
-            status.textContent = '开始加载...';
+            status.textContent = 'Loading...';
             status.className = 'video-status loading';
         };
 
         window.handleVideoLoaded = function(video) {
             const status = video.parentElement.querySelector('.video-status');
-            status.textContent = '元数据已加载';
+            status.textContent = 'Metadata loaded';
             status.className = 'video-status loaded';
         };
 
         window.handleVideoCanPlay = function(video) {
             const status = video.parentElement.querySelector('.video-status');
-            status.textContent = '可以播放 (自动循环)';
+            status.textContent = 'Ready to play (auto-loop)';
             status.className = 'video-status loaded';
         };
 
         window.handleVideoError = function(video) {
             const status = video.parentElement.querySelector('.video-status');
             const error = video.error;
-            let errorMessage = '加载失败';
+            let errorMessage = 'Loading failed';
             
             if (error) {
                 switch (error.code) {
-                    case 1: errorMessage = '播放中断'; break;
-                    case 2: errorMessage = '网络错误'; break;
-                    case 3: errorMessage = '解码错误'; break;
-                    case 4: errorMessage = '格式不支持'; break;
-                    default: errorMessage = '未知错误';
+                    case 1: errorMessage = 'Playback aborted'; break;
+                    case 2: errorMessage = 'Network error'; break;
+                    case 3: errorMessage = 'Decode error'; break;
+                    case 4: errorMessage = 'Format not supported'; break;
+                    default: errorMessage = 'Unknown error';
                 }
             }
             
@@ -831,7 +880,7 @@
             status.className = 'video-status error';
         };
 
-        // 分页按钮事件监听
+        // Page button event listeners
         document.getElementById('prevPage').addEventListener('click', function() {
             if (currentPage > 1) {
                 currentPage--;
@@ -846,17 +895,42 @@
             }
         });
 
-        // 视图切换
+        // Videos per page selector
+        document.getElementById('videosPerPage').addEventListener('change', function() {
+            videosPerPage = parseInt(this.value);
+            currentPage = 1; // Reset to first page
+            updateVisualization();
+        });
+
+        // Column control buttons
+        document.querySelectorAll('.control-btn[data-cols]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const cols = parseInt(this.dataset.cols);
+                columnsPerRow = cols;
+                
+                // Update button states
+                document.querySelectorAll('.control-btn[data-cols]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update grid classes
+                const videoGrid = document.getElementById('videoGrid');
+                videoGrid.className = `video-grid cols-${cols}`;
+                
+                updateVisualization();
+            });
+        });
+
+        // View toggle buttons
         document.querySelectorAll('.view-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const view = this.dataset.view;
                 currentView = view;
                 
-                // 更新按钮状态
+                // Update button states
                 document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 
-                // 切换视图
+                // Switch views
                 if (view === 'grid') {
                     document.getElementById('videoGrid').style.display = 'grid';
                     document.getElementById('videoList').classList.remove('active');
@@ -889,13 +963,13 @@
             const nextBtn = document.getElementById('nextPage');
 
             if (sortedVideos.length === 0) {
-                pageInfo.textContent = '第 0 页，共 0 页';
+                pageInfo.textContent = 'Page 0 of 0';
                 prevBtn.disabled = true;
                 nextBtn.disabled = true;
                 return;
             }
 
-            pageInfo.textContent = `第 ${currentPage} 页，共 ${totalPages} 页 (总计 ${sortedVideos.length} 个视频)`;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (Total ${sortedVideos.length} videos)`;
             prevBtn.disabled = currentPage <= 1;
             nextBtn.disabled = currentPage >= totalPages;
         }
@@ -928,7 +1002,7 @@
             const videoGrid = document.getElementById('videoGrid');
             
             if (videoData.length === 0) {
-                videoGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #6c757d; font-size: 1.2em;">暂无视频数据</div>';
+                videoGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #6c757d; font-size: 1.2em;">No video data available</div>';
                 return;
             }
 
@@ -952,17 +1026,17 @@
                                onloadedmetadata="handleVideoLoaded(this)"
                                oncanplay="handleVideoCanPlay(this)">
                             <source src="${video.url}" type="video/mp4">
-                            您的浏览器不支持视频播放
+                            Your browser does not support video playback
                         </video>
                         <div class="video-debug-info">
-                            <small class="video-status">加载中...</small>
-                            ${video.method ? `<small style="display: block;">方法: ${video.method}</small>` : ''}
-                            ${video.error ? `<small style="display: block; color: #ff6b6b;">错误: ${video.error}</small>` : ''}
+                            <small class="video-status">Loading...</small>
+                            ${video.method ? `<small style="display: block;">Method: ${video.method}</small>` : ''}
+                            ${video.error ? `<small style="display: block; color: #ff6b6b;">Error: ${video.error}</small>` : ''}
                         </div>
                     </div>
                     <div class="video-info">
                         <div class="video-title ${isCut ? 'cut' : ''}" title="${video.name}">
-                            <a href="${video.url}" target="_blank" title="点击访问视频链接">
+                            <a href="${video.url}" target="_blank" title="Click to access video link">
                                 ${video.name}
                             </a>
                         </div>
@@ -983,7 +1057,7 @@
             const videoList = document.getElementById('videoList');
             
             if (videoData.length === 0) {
-                videoList.innerHTML = '<div style="text-align: center; padding: 50px; color: #6c757d; font-size: 1.2em;">暂无视频数据</div>';
+                videoList.innerHTML = '<div style="text-align: center; padding: 50px; color: #6c757d; font-size: 1.2em;">No video data available</div>';
                 return;
             }
 
@@ -1001,8 +1075,8 @@
                     <div class="video-rank">#${globalIndex + 1}</div>
                     <div class="video-name ${isCut ? 'cut' : ''}" title="${video.name}">
                         <a href="${video.url}" target="_blank" rel="noopener noreferrer">${video.name}</a>
-                        ${video.method ? `<small style="display: block; color: #6c757d; font-size: 0.8em;">方法: ${video.method}</small>` : ''}
-                        ${video.error ? `<small style="display: block; color: #dc3545; font-size: 0.8em;">错误: ${video.error}</small>` : ''}
+                        ${video.method ? `<small style="display: block; color: #6c757d; font-size: 0.8em;">Method: ${video.method}</small>` : ''}
+                        ${video.error ? `<small style="display: block; color: #dc3545; font-size: 0.8em;">Error: ${video.error}</small>` : ''}
                     </div>
                     <div class="video-score">${video.score.toFixed(4)}</div>
                     <div class="cut-indicator ${isCut ? 'cut-true' : 'cut-false'}">
@@ -1026,28 +1100,28 @@
             }
         }
 
-        // 阈值输入事件监听
+        // Threshold input event listener
         document.getElementById('threshold').addEventListener('input', function(e) {
             const value = parseFloat(e.target.value);
             if (!isNaN(value) && value >= 0 && value <= 1) {
                 currentThreshold = value;
-                currentPage = 1; // 重置到第一页
+                currentPage = 1; // Reset to first page
                 updateVisualization();
             }
         });
 
-        // 初始化
+        // Initialize
         function initialize() {
             selectionData = getSelectionData();
             if (selectionData) {
                 document.getElementById('currentDatasetInfo').textContent = 
-                    `数据集: ${selectionData.dataset} | 标签: ${selectionData.label} | 模型: ${selectionData.model} | 分割: ${selectionData.segment} | 最大案例: ${selectionData.maxCases}`;
+                    `Dataset: ${selectionData.dataset} | Label: ${selectionData.label} | Model: ${selectionData.model} | Segment: ${selectionData.segment} | Max Cases: ${selectionData.maxCases}`;
                 
                 loadJsonData();
             }
         }
 
-        // 页面加载完成后初始化
+        // Initialize after page load
         document.addEventListener('DOMContentLoaded', initialize);
     </script>
 </body>
