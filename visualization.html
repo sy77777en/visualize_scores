@@ -585,6 +585,10 @@
                     <div class="stat-number" id="minScore">0</div>
                     <div class="stat-label">Min Score</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="actualFilteredCount">0</div>
+                    <div class="stat-label">Filtered Videos</div>
+                </div>
             </div>
             
             <div class="error-message message" id="errorMessage"></div>
@@ -604,6 +608,7 @@
     <script>
         // Global variables
         let videoData = [];
+        let originalVideoData = []; // 保存原始数据
         let currentThreshold = 0.85;
         let sortedVideos = [];
         let currentView = 'grid';
@@ -697,7 +702,7 @@
                 
                 processJsonData(jsonData);
                 
-                showMessage(`Successfully loaded ${videoData.length} video data`, 'success');
+                showMessage(`Successfully loaded ${originalVideoData.length} video data, filtered to ${videoData.length} videos`, 'success');
                 
             } catch (error) {
                 console.error('Failed to load JSON data:', error);
@@ -789,7 +794,7 @@
                 // Detect JSON format type
                 if (jsonData.scores && Array.isArray(jsonData.scores)) {
                     // New format: contains metadata and scores
-                    videoData = jsonData.scores.map(item => ({
+                    originalVideoData = jsonData.scores.map(item => ({
                         name: item.sample_id,
                         url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
                         score: parseFloat(item.score),
@@ -798,7 +803,7 @@
                     }));
                 } else if (Array.isArray(jsonData) && jsonData[0]?.sample_id) {
                     // New format: direct scores array
-                    videoData = jsonData.map(item => ({
+                    originalVideoData = jsonData.map(item => ({
                         name: item.sample_id,
                         url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
                         score: parseFloat(item.score),
@@ -808,6 +813,8 @@
                 } else {
                     throw new Error('Unsupported JSON format. Please ensure data contains sample_id and score fields.');
                 }
+                
+                console.log(`Original data loaded: ${originalVideoData.length} videos`);
                 
                 // Apply parameter filtering
                 applyParameterFiltering();
@@ -821,25 +828,38 @@
 
         // Apply parameter filtering
         function applyParameterFiltering() {
-            if (!selectionData) return;
+            if (!selectionData || !originalVideoData.length) return;
 
             const { segment, maxCases } = selectionData;
             
-            // Sort by score
-            videoData.sort((a, b) => b.score - a.score);
+            console.log(`Applying parameter filtering: segment=${segment}, maxCases=${maxCases}`);
+            console.log(`Original data length: ${originalVideoData.length}`);
             
-            // Group by segment and limit cases per group
-            const segmentSize = Math.ceil(videoData.length * segment);
-            const filteredData = [];
+            // Sort by score (descending)
+            const sortedData = [...originalVideoData].sort((a, b) => b.score - a.score);
             
-            for (let i = 0; i < videoData.length; i += segmentSize) {
-                const segmentVideos = videoData.slice(i, i + segmentSize);
-                const limitedSegment = segmentVideos.slice(0, maxCases);
-                filteredData.push(...limitedSegment);
+            // Calculate segment size
+            const segmentSize = Math.max(1, Math.ceil(sortedData.length * segment));
+            console.log(`Calculated segment size: ${segmentSize}`);
+            
+            // Apply filtering based on logic
+            videoData = [];
+            
+            if (segment === 1) {
+                // If segment is 1 (100%), just take maxCases from top
+                videoData = sortedData.slice(0, maxCases);
+            } else {
+                // Split into segments and take maxCases from each segment
+                for (let i = 0; i < sortedData.length; i += segmentSize) {
+                    const segmentVideos = sortedData.slice(i, i + segmentSize);
+                    const limitedSegment = segmentVideos.slice(0, maxCases);
+                    videoData.push(...limitedSegment);
+                    
+                    console.log(`Segment ${Math.floor(i/segmentSize) + 1}: ${segmentVideos.length} videos, taking ${limitedSegment.length}`);
+                }
             }
             
-            videoData = filteredData;
-            console.log(`Applied parameter filtering: segment=${segment}, maxCases=${maxCases}, final video count=${videoData.length}`);
+            console.log(`Final filtered video count: ${videoData.length}`);
         }
 
         // Video debug functions
@@ -975,27 +995,30 @@
         }
 
         function updateStats() {
-            if (videoData.length === 0) {
+            if (originalVideoData.length === 0) {
                 document.getElementById('totalCount').textContent = 0;
                 document.getElementById('cutCount').textContent = 0;
                 document.getElementById('averageScore').textContent = 0;
                 document.getElementById('maxScore').textContent = 0;
                 document.getElementById('minScore').textContent = 0;
+                document.getElementById('actualFilteredCount').textContent = 0;
                 return;
             }
 
-            const total = videoData.length;
+            const total = originalVideoData.length;
+            const filteredTotal = videoData.length;
             const cutCount = sortedVideos.filter(video => video.score > currentThreshold).length;
             const scores = videoData.map(video => video.score);
-            const averageScore = (scores.reduce((sum, score) => sum + score, 0) / total).toFixed(4);
-            const maxScore = Math.max(...scores).toFixed(4);
-            const minScore = Math.min(...scores).toFixed(4);
+            const averageScore = scores.length > 0 ? (scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(4) : 0;
+            const maxScore = scores.length > 0 ? Math.max(...scores).toFixed(4) : 0;
+            const minScore = scores.length > 0 ? Math.min(...scores).toFixed(4) : 0;
 
             document.getElementById('totalCount').textContent = total;
             document.getElementById('cutCount').textContent = cutCount;
             document.getElementById('averageScore').textContent = averageScore;
             document.getElementById('maxScore').textContent = maxScore;
             document.getElementById('minScore').textContent = minScore;
+            document.getElementById('actualFilteredCount').textContent = filteredTotal;
         }
 
         function renderGridView() {
