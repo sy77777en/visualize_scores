@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.2em;
+        }
+
+        .selection-content {
+            padding: 50px;
+        }
+
+        .section-title {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .connection-status {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            border-left: 5px solid #28a745;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .connection-status.loading {
+            border-left-color: #ffc107;
+        }
+
+        .connection-status.error {
+            border-left-color: #dc3545;
+        }
+
+        .status-icon {
+            font-size: 24px;
+        }
+
+        .status-text {
+            flex: 1;
+        }
+
+        .status-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .status-description {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .retry-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .retry-btn:hover {
+            background: #0056b3;
+        }
+
+        .selection-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .selection-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #4facfe;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .selection-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .selection-card.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+            transform: none;
+        }
+
+        .card-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            font-size: 1.2em;
+        }
+
+        .dataset-selector, .model-selector {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .dataset-selector:focus, .model-selector:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .selector-disabled {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* Label Search Component */
+        .label-search-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .label-search-input {
+            width: 100%;
+            padding: 15px 45px 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .label-search-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .label-search-input.has-value {
+            border-color: #28a745;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 45px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 18px;
+            pointer-events: none;
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            display: none;
+        }
+
+        .clear-search:hover {
+            background-color: #f8f9fa;
+            color: #dc3545;
+        }
+
+        .label-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #4facfe;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 350px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .label-dropdown.active {
+            display: block;
+        }
+
+        .label-option {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .label-option:hover {
+            background-color: #f8f9fa;
+        }
+
+        .label-option.selected {
+            background-color: #4facfe;
+            color: white;
+        }
+
+        .label-option.highlighted {
+            background-color: #e3f2fd;
+        }
+
+        .label-option-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .label-option-key {
+            font-size: 13px;
+            color: #6c757d;
+            font-family: monospace;
+        }
+
+        .label-option.selected .label-option-key {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .label-category {
+            font-weight: bold;
+            background: linear-gradient(135deg, #f1f3f4 0%, #e9ecef 100%);
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            padding: 12px 20px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .label-category:hover {
+            background: linear-gradient(135deg, #f1f3f4 0%, #e9ecef 100%);
+            cursor: default;
+        }
+
+        .no-results {
+            padding: 30px 20px;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .label-counter {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 10px;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .selection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        .selection-status.incomplete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .parameters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        .parameter-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .parameter-group label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 180px;
+            font-size: 1.1em;
+        }
+
+        .parameter-input {
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            width: 250px;
+            transition: all 0.3s ease;
+        }
+
+        .parameter-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .parameter-help {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-left: 10px;
+        }
+
+        .start-analysis-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 0 auto;
+            min-width: 200px;
+        }
+
+        .start-analysis-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
+        }
+
+        .start-analysis-btn:disabled {
+            background: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .error-message {
+            color: #721c24;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        .loading-message {
+            color: #856404;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .info-panel h3 {
+            color: #17a2b8;
+            margin-bottom: 10px;
+        }
+
+        .info-panel p {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .repo-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .repo-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .selection-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .parameter-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .parameter-input {
+                width: 100%;
+            }
+
+            .selection-content {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Video Analysis Tool</h1>
+            <p>Automated video scoring and visualization analysis</p>
+        </div>
+
+        <div class="selection-content">
+            <div class="info-panel">
+                <h3>📊 Video Score Visualization</h3>
+                <p>This tool loads video analysis data from our <a href="https://huggingface.co/datasets/syCen/score_visualization" target="_blank" class="repo-link">Hugging Face dataset repository</a> and provides interactive visualization and analysis capabilities.</p>
+            </div>
+
+            <!-- Connection Status -->
+            <div class="connection-status loading" id="connectionStatus">
+                <div class="status-icon">⏳</div>
+                <div class="status-text">
+                    <div class="status-title">Connecting to Dataset...</div>
+                    <div class="status-description">Loading configuration from Hugging Face repository</div>
+                </div>
+            </div>
+
+            <h2 class="section-title">Data Selection</h2>
+            
+            <div class="selection-grid">
+                <div class="selection-card disabled" id="datasetCard">
+                    <h3 class="card-title">
+                        <span class="card-icon">📁</span>
+                        Dataset & Label Selection
+                    </h3>
+                    <select id="datasetSelector" class="dataset-selector selector-disabled">
+                        <option value="">Loading datasets...</option>
+                    </select>
+                    
+                    <div class="label-search-container" id="labelSearchContainer" style="display: none;">
+                        <input 
+                            type="text" 
+                            id="labelSearchInput" 
+                            class="label-search-input" 
+                            placeholder="Search labels... (e.g., 'subject', 'angle', 'pov')"
+                            autocomplete="off"
+                        >
+                        <span class="search-icon">🔍</span>
+                        <button class="clear-search" id="clearLabelSearch" title="Clear selection">✕</button>
+                        <div class="label-dropdown" id="labelDropdown"></div>
+                    </div>
+                    
+                    <div class="label-counter" id="labelCounter" style="display: none;"></div>
+                    <div class="selection-status incomplete" id="labelStatus">Loading...</div>
+                </div>
+
+                <div class="selection-card disabled" id="modelCard">
+                    <h3 class="card-title">
+                        <span class="card-icon">🤖</span>
+                        Model Selection
+                    </h3>
+                    <select id="modelSelector" class="model-selector selector-disabled">
+                        <option value="">Loading models...</option>
+                    </select>
+                    <div class="selection-status incomplete" id="modelStatus">Loading...</div>
+                </div>
+            </div>
+
+            <div class="parameters-section">
+                <h3 class="card-title">
+                    <span class="card-icon">⚙️</span>
+                    Analysis Parameters
+                </h3>
+                <div class="parameter-group">
+                    <label for="segmentInput">Segment Threshold:</label>
+                    <input type="number" id="segmentInput" class="parameter-input" value="0.1" step="0.01" min="0" max="1" placeholder="e.g., 0.1">
+                    <span class="parameter-help">Threshold for splitting video segments</span>
+                </div>
+                <div class="parameter-group">
+                    <label for="maxCasesInput">Max Cases per Segment:</label>
+                    <input type="number" id="maxCasesInput" class="parameter-input" value="20" min="1" max="100" placeholder="e.g., 20">
+                    <span class="parameter-help">Limit the maximum number of videos per analysis segment</span>
+                </div>
+            </div>
+
+            <button id="startAnalysisBtn" class="start-analysis-btn" disabled>
+                🚀 Start Analysis
+            </button>
+            
+            <div class="error-message message" id="errorMessage"></div>
+            <div class="success-message message" id="successMessage"></div>
+            <div class="loading-message message" id="loadingMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        // Pre-configured Hugging Face repository settings
+        const HF_CONFIG = {
+            repoId: 'syCen/score_visualization',
+            token: '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', // Your token here (optional, for private repos)
+            configPath: 'dataset-config.json'
+        };
+        
+        // Hugging Face API URLs
+        const HF_HUB_BASE = 'https://huggingface.co';
+        
+        let datasetConfig = null;
+        
+        // Global state management
+        let currentSelection = {
+            dataset: '',
+            label: '',
+            model: ''
+        };
+
+        let labelSearchInstance = null;
+
+        // Show message function
+        function showMessage(message, type = 'info') {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            const loadingDiv = document.getElementById('loadingMessage');
+            
+            // Hide all messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            loadingDiv.style.display = 'none';
+            
+            if (type === 'error') {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else if (type === 'success') {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            } else if (type === 'loading') {
+                loadingDiv.textContent = message;
+                loadingDiv.style.display = 'block';
+            }
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                    successDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Update connection status
+        function updateConnectionStatus(title, description, type = 'loading', showRetry = false) {
+            const statusDiv = document.getElementById('connectionStatus');
+            const icons = {
+                loading: '⏳',
+                success: '✅',
+                error: '❌'
+            };
+            
+            statusDiv.className = `connection-status ${type}`;
+            statusDiv.innerHTML = `
+                <div class="status-icon">${icons[type]}</div>
+                <div class="status-text">
+                    <div class="status-title">${title}</div>
+                    <div class="status-description">${description}</div>
+                </div>
+                ${showRetry ? '<button class="retry-btn" onclick="initializeApp()">Retry</button>' : ''}
+            `;
+        }
+
+        // Fetch file from Hugging Face
+        async function fetchHFFile(repoId, filePath, token = '') {
+            const url = `${HF_HUB_BASE}/datasets/${repoId}/raw/main/${filePath}`;
+            
+            const headers = {
+                'Accept': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const response = await fetch(url, { headers });
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Unauthorized - invalid access token');
+                } else if (response.status === 404) {
+                    throw new Error(`File not found: ${filePath}`);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            }
+            
+            return response.json();
+        }
+
+        // Get data file URL from Hugging Face
+        function getDataFileUrl(dataset, label, model) {
+            return `https://huggingface.co/datasets/${HF_CONFIG.repoId}/raw/main/dataset/${dataset}/${label}/${model}.json`;
+        }
+
+        // Load dataset configuration
+        async function loadDatasetConfig() {
+            try {
+                updateConnectionStatus('Connecting to Repository...', 'Loading config file...', 'loading');
+
+                const url = "https://huggingface.co/datasets/syCen/score_visualization/raw/main/dataset-config.json";
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+                }
+                const config = await response.json();
+
+                if (!config.datasets) {
+                    throw new Error('Configuration file missing "datasets" field');
+                }
+                
+                datasetConfig = config;
+                
+                updateConnectionStatus(
+                    'Successfully Connected', 
+                    `Loaded configuration from ${HF_CONFIG.repoId}`, 
+                    'success'
+                );
+                
+                console.log('Dataset configuration loaded:', datasetConfig);
+                return true;
+                
+            } catch (error) {
+                console.error('Configuration loading error:', error);
+                updateConnectionStatus(
+                    'Connection Failed', 
+                    error.message, 
+                    'error',
+                    true
+                );
+                return false;
+            }
+        }
+
+        // Enable interface after successful connection
+        function enableInterface() {
+            document.getElementById('datasetCard').classList.remove('disabled');
+            document.getElementById('modelCard').classList.remove('disabled');
+            
+            initializeDatasets();
+        }
+
+        // Initialize dataset list
+        function initializeDatasets() {
+            if (!datasetConfig) return;
+            
+            const datasetSelector = document.getElementById('datasetSelector');
+            datasetSelector.className = 'dataset-selector';
+            datasetSelector.innerHTML = '<option value="">Select dataset...</option>';
+            
+            const datasets = Object.keys(datasetConfig.datasets);
+            
+            if (datasets.length === 0) {
+                datasetSelector.innerHTML = '<option value="">No datasets available</option>';
+                document.getElementById('labelStatus').textContent = 'No datasets available';
+                document.getElementById('labelStatus').className = 'selection-status incomplete';
+                return;
+            }
+            
+            datasets.forEach(datasetKey => {
+                const dataset = datasetConfig.datasets[datasetKey];
+                const option = document.createElement('option');
+                option.value = datasetKey;
+                option.textContent = dataset.display_name || datasetKey;
+                datasetSelector.appendChild(option);
+            });
+            
+            // Update status
+            document.getElementById('labelStatus').textContent = 'Select dataset first';
+            document.getElementById('labelStatus').className = 'selection-status incomplete';
+            document.getElementById('modelStatus').textContent = 'Select dataset and label first';
+            document.getElementById('modelStatus').className = 'selection-status incomplete';
+            
+            console.log('Datasets initialized:', datasets);
+        }
+
+        // Categorize labels function
+        function categorizeLabels(labels) {
+            const categories = {};
+            
+            labels.forEach(labelKey => {
+                let category = 'Others';
+                
+                if (labelKey.includes('pov') || labelKey.includes('_pov')) {
+                    category = 'Point of View (POV)';
+                } else if (labelKey.includes('distortion')) {
+                    category = 'Distortion Types';
+                } else if (labelKey.includes('subject')) {
+                    category = 'Subject Related';
+                } else if (labelKey.includes('focus')) {
+                    category = 'Focus Related';
+                } else if (labelKey.includes('angle') || labelKey.includes('height')) {
+                    category = 'Angles & Heights';
+                } else if (labelKey.includes('shot') && !labelKey.includes('subject')) {
+                    category = 'Shot Types';
+                } else if (labelKey.includes('framing') || labelKey.includes('size')) {
+                    category = 'Framing Related';
+                } else if (labelKey.includes('transition')) {
+                    category = 'Transitions';
+                } else if (labelKey.includes('movement') || labelKey.includes('motion')) {
+                    category = 'Movement & Motion';
+                } else if (labelKey.includes('lighting') || labelKey.includes('light')) {
+                    category = 'Lighting';
+                } else if (labelKey.includes('composition')) {
+                    category = 'Composition';
+                }
+                
+                if (!categories[category]) {
+                    categories[category] = [];
+                }
+                categories[category].push(labelKey);
+            });
+            
+            return categories;
+        }
+
+        // Label Search Component Class
+        class LabelSearchComponent {
+            constructor(labels, datasetInfo, onSelect) {
+                this.labels = labels;
+                this.datasetInfo = datasetInfo;
+                this.onSelect = onSelect;
+                this.selectedLabel = '';
+                this.filteredLabels = [...labels];
+                
+                this.searchInput = document.getElementById('labelSearchInput');
+                this.dropdown = document.getElementById('labelDropdown');
+                this.clearBtn = document.getElementById('clearLabelSearch');
+                this.counter = document.getElementById('labelCounter');
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.renderOptions(this.labels);
+                this.updateCounter();
+            }
+            
+            setupEventListeners() {
+                // Remove previous event listeners
+                const newSearchInput = this.searchInput.cloneNode(true);
+                this.searchInput.parentNode.replaceChild(newSearchInput, this.searchInput);
+                this.searchInput = newSearchInput;
+                
+                const newClearBtn = this.clearBtn.cloneNode(true);
+                this.clearBtn.parentNode.replaceChild(newClearBtn, this.clearBtn);
+                this.clearBtn = newClearBtn;
+                
+                // Search input events
+                this.searchInput.addEventListener('input', (e) => {
+                    this.handleSearch(e.target.value);
+                });
+                
+                this.searchInput.addEventListener('focus', () => {
+                    this.showDropdown();
+                });
+                
+                this.searchInput.addEventListener('keydown', (e) => {
+                    this.handleKeydown(e);
+                });
+                
+                // Clear button
+                this.clearBtn.addEventListener('click', () => {
+                    this.clearSelection();
+                });
+                
+                // Click outside to close
+                document.addEventListener('click', (e) => {
+                    if (!document.getElementById('labelSearchContainer').contains(e.target)) {
+                        this.hideDropdown();
+                    }
+                });
+            }
+            
+            handleSearch(query) {
+                this.filteredLabels = this.filterLabels(query);
+                this.renderOptions(this.filteredLabels);
+                this.updateCounter();
+                
+                if (query.trim()) {
+                    this.showDropdown();
+                    this.clearBtn.style.display = 'block';
+                } else {
+                    if (!this.selectedLabel) {
+                        this.clearBtn.style.display = 'none';
+                    }
+                }
+            }
+            
+            handleKeydown(e) {
+                const options = this.dropdown.querySelectorAll('.label-option:not(.label-category)');
+                const highlighted = this.dropdown.querySelector('.label-option.highlighted');
+                let currentIndex = -1;
+                
+                if (highlighted) {
+                    currentIndex = Array.from(options).indexOf(highlighted);
+                }
+                
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.highlightOption(options, Math.min(currentIndex + 1, options.length - 1));
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.highlightOption(options, Math.max(currentIndex - 1, 0));
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        if (highlighted) {
+                            this.selectLabel(highlighted.dataset.value);
+                        }
+                        break;
+                    case 'Escape':
+                        this.hideDropdown();
+                        this.searchInput.blur();
+                        break;
+                }
+            }
+            
+            highlightOption(options, index) {
+                // Remove previous highlight
+                options.forEach(opt => opt.classList.remove('highlighted'));
+                
+                // Add new highlight
+                if (options[index]) {
+                    options[index].classList.add('highlighted');
+                    options[index].scrollIntoView({ block: 'nearest' });
+                }
+            }
+            
+            filterLabels(query) {
+                if (!query.trim()) {
+                    return this.labels;
+                }
+                
+                const searchTerm = query.toLowerCase();
+                return this.labels.filter(labelKey => {
+                    const label = this.datasetInfo.labels[labelKey];
+                    const displayName = (label.display_name || labelKey).toLowerCase();
+                    const key = labelKey.toLowerCase();
+                    
+                    return displayName.includes(searchTerm) || 
+                           key.includes(searchTerm) ||
+                           this.getKeywords(labelKey).some(keyword => keyword.includes(searchTerm));
+                });
+            }
+            
+            getKeywords(labelKey) {
+                // Extract additional keywords for better search
+                const keywords = [];
+                const parts = labelKey.split('_');
+                keywords.push(...parts);
+                
+                // Add common synonyms
+                const synonyms = {
+                    'pov': ['point of view', 'perspective'],
+                    'shot': ['camera shot', 'view'],
+                    'subject': ['object', 'target', 'focus'],
+                    'angle': ['view', 'perspective'],
+                    'movement': ['motion', 'move'],
+                    'lighting': ['light', 'illumination']
+                };
+                
+                parts.forEach(part => {
+                    if (synonyms[part]) {
+                        keywords.push(...synonyms[part]);
+                    }
+                });
+                
+                return keywords;
+            }
+            
+            renderOptions(filteredLabels) {
+                this.dropdown.innerHTML = '';
+                
+                if (filteredLabels.length === 0) {
+                    this.dropdown.innerHTML = '<div class="no-results">No matching labels found</div>';
+                    return;
+                }
+                
+                // Group by categories
+                const categories = this.categorizeLabels(filteredLabels);
+                
+                Object.keys(categories).sort().forEach(categoryName => {
+                    // Add category header
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'label-option label-category';
+                    categoryDiv.textContent = `${categoryName} (${categories[categoryName].length})`;
+                    this.dropdown.appendChild(categoryDiv);
+                    
+                    // Add labels in this category
+                    categories[categoryName].sort().forEach(labelKey => {
+                        const option = document.createElement('div');
+                        option.className = 'label-option';
+                        option.dataset.value = labelKey;
+                        
+                        const label = this.datasetInfo.labels[labelKey];
+                        option.innerHTML = `
+                            <div class="label-option-name">${label.display_name || labelKey}</div>
+                            <div class="label-option-key">${labelKey}</div>
+                        `;
+                        
+                        option.addEventListener('click', () => {
+                            this.selectLabel(labelKey);
+                        });
+                        
+                        this.dropdown.appendChild(option);
+                    });
+                });
+            }
+            
+            categorizeLabels(labels) {
+                return categorizeLabels(labels);
+            }
+            
+            selectLabel(labelKey) {
+                this.selectedLabel = labelKey;
+                const label = this.datasetInfo.labels[labelKey];
+                
+                this.searchInput.value = label.display_name || labelKey;
+                this.searchInput.classList.add('has-value');
+                this.clearBtn.style.display = 'block';
+                this.hideDropdown();
+                
+                // Update status
+                this.updateSelectionStatus(labelKey, true);
+                
+                // Callback
+                this.onSelect(labelKey);
+            }
+            
+            clearSelection() {
+                this.selectedLabel = '';
+                this.searchInput.value = '';
+                this.searchInput.classList.remove('has-value');
+                this.clearBtn.style.display = 'none';
+                this.filteredLabels = [...this.labels];
+                this.renderOptions(this.labels);
+                this.updateCounter();
+                this.hideDropdown();
+                
+                // Update status
+                this.updateSelectionStatus('', false);
+                
+                // Callback
+                this.onSelect('');
+            }
+            
+            updateSelectionStatus(labelKey, isSelected) {
+                const statusEl = document.getElementById('labelStatus');
+                if (isSelected) {
+                    const label = this.datasetInfo.labels[labelKey];
+                    statusEl.textContent = `Selected: ${label.display_name || labelKey}`;
+                    statusEl.className = 'selection-status';
+                } else {
+                    statusEl.textContent = 'No label selected';
+                    statusEl.className = 'selection-status incomplete';
+                }
+            }
+            
+            updateCounter() {
+                const total = this.labels.length;
+                const showing = this.filteredLabels.length;
+                this.counter.textContent = `Showing ${showing} of ${total} labels`;
+                this.counter.style.display = 'block';
+            }
+            
+            showDropdown() {
+                this.dropdown.classList.add('active');
+            }
+            
+            hideDropdown() {
+                this.dropdown.classList.remove('active');
+                // Remove all highlights
+                this.dropdown.querySelectorAll('.label-option').forEach(opt => 
+                    opt.classList.remove('highlighted')
+                );
+            }
+            
+            getCurrentSelection() {
+                return this.selectedLabel;
+            }
+        }
+
+        // Check if start analysis button should be enabled
+        function checkStartButton() {
+            const isComplete = currentSelection.dataset && currentSelection.label && currentSelection.model;
+            const startBtn = document.getElementById('startAnalysisBtn');
+            startBtn.disabled = !isComplete;
+            
+            console.log('Current selection state:', currentSelection, 'Button enabled:', isComplete);
+        }
+
+        // Update labels display
+        function updateLabels(dataset) {
+            const labelSearchContainer = document.getElementById('labelSearchContainer');
+            const modelSelector = document.getElementById('modelSelector');
+            
+            // Reset selection state
+            currentSelection.label = '';
+            currentSelection.model = '';
+            
+            if (!dataset || !datasetConfig) {
+                labelSearchContainer.style.display = 'none';
+                modelSelector.innerHTML = '<option value="">Select dataset first...</option>';
+                modelSelector.className = 'model-selector selector-disabled';
+                document.getElementById('labelStatus').textContent = 'No dataset selected';
+                document.getElementById('labelStatus').className = 'selection-status incomplete';
+                checkStartButton();
+                return;
+            }
+
+            const datasetInfo = datasetConfig.datasets[dataset];
+            if (!datasetInfo || !datasetInfo.labels) {
+                labelSearchContainer.style.display = 'none';
+                showMessage(`Dataset "${dataset}" has no label configuration`, 'error');
+                document.getElementById('labelStatus').textContent = 'Dataset has no labels';
+                document.getElementById('labelStatus').className = 'selection-status incomplete';
+                return;
+            }
+            
+            const labels = Object.keys(datasetInfo.labels);
+            if (labels.length === 0) {
+                labelSearchContainer.style.display = 'none';
+                document.getElementById('labelStatus').textContent = 'No labels defined in dataset';
+                document.getElementById('labelStatus').className = 'selection-status incomplete';
+                return;
+            }
+            
+            // Show label search interface
+            labelSearchContainer.style.display = 'block';
+            
+            // Initialize label search component
+            if (labelSearchInstance) {
+                labelSearchInstance.clearSelection();
+            }
+            
+            labelSearchInstance = new LabelSearchComponent(
+                labels,
+                datasetInfo,
+                (selectedLabel) => {
+                    currentSelection.label = selectedLabel;
+                    updateModels(currentSelection.dataset, selectedLabel);
+                }
+            );
+
+            console.log(`Dataset ${dataset} labels:`, labels);
+
+            // Reset model selector
+            modelSelector.innerHTML = '<option value="">Select label first...</option>';
+            modelSelector.className = 'model-selector selector-disabled';
+            document.getElementById('modelStatus').textContent = 'No label selected';
+            document.getElementById('modelStatus').className = 'selection-status incomplete';
+            checkStartButton();
+        }
+
+        // Update models list
+        function updateModels(dataset, label) {
+            const modelSelector = document.getElementById('modelSelector');
+            const modelStatus = document.getElementById('modelStatus');
+            
+            // Reset model selection state
+            currentSelection.model = '';
+            
+            if (!dataset || !label || !datasetConfig) {
+                modelSelector.innerHTML = '<option value="">Select label first...</option>';
+                modelSelector.className = 'model-selector selector-disabled';
+                modelStatus.textContent = 'No label selected';
+                modelStatus.className = 'selection-status incomplete';
+                checkStartButton();
+                return;
+            }
+
+            const datasetInfo = datasetConfig.datasets[dataset];
+            if (!datasetInfo || !datasetInfo.labels || !datasetInfo.labels[label]) {
+                modelSelector.className = 'model-selector selector-disabled';
+                modelSelector.innerHTML = '<option value="">Label configuration error</option>';
+                modelStatus.textContent = 'Label configuration error';
+                modelStatus.className = 'selection-status incomplete';
+                return;
+            }
+            
+            const labelInfo = datasetInfo.labels[label];
+            const models = labelInfo.models || [];
+            
+            if (models.length === 0) {
+                modelSelector.className = 'model-selector selector-disabled';
+                modelSelector.innerHTML = '<option value="">No models defined for this label</option>';
+                modelStatus.textContent = 'No models available';
+                modelStatus.className = 'selection-status incomplete';
+                return;
+            }
+            
+            modelSelector.className = 'model-selector';
+            modelSelector.innerHTML = '<option value="">Select model...</option>';
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                modelSelector.appendChild(option);
+            });
+
+            console.log(`Label ${label} models:`, models);
+            modelStatus.textContent = 'No model selected';
+            modelStatus.className = 'selection-status incomplete';
+            checkStartButton();
+        }
+
+        // Start analysis with Hugging Face data
+        function startAnalysis() {
+            const segment = document.getElementById('segmentInput').value;
+            const maxCases = document.getElementById('maxCasesInput').value;
+
+            if (!currentSelection.dataset || !currentSelection.label || !currentSelection.model) {
+                showMessage('Please complete all selections', 'error');
+                return;
+            }
+
+            // Validate parameters
+            const segmentValue = parseFloat(segment);
+            const maxCasesValue = parseInt(maxCases);
+            
+            if (isNaN(segmentValue) || segmentValue <= 0 || segmentValue > 1) {
+                showMessage('Segment threshold must be between 0 and 1', 'error');
+                return;
+            }
+            
+            if (isNaN(maxCasesValue) || maxCasesValue <= 0) {
+                showMessage('Max cases must be greater than 0', 'error');
+                return;
+            }
+
+            // Get data file URL from Hugging Face
+            const dataFileUrl = getDataFileUrl(currentSelection.dataset, currentSelection.label, currentSelection.model);
+            
+            // Save selection to localStorage
+            const selectionData = {
+                dataset: currentSelection.dataset,
+                label: currentSelection.label,
+                model: currentSelection.model,
+                segment: segmentValue,
+                maxCases: maxCasesValue,
+                timestamp: Date.now(),
+                dataFileUrl: dataFileUrl,
+                // Hugging Face specific data
+                isHuggingFace: true,
+                huggingFace: {
+                    repoId: HF_CONFIG.repoId,
+                    token: HF_CONFIG.token,
+                    // dataFileUrl: dataFileUrl,
+                    configPath: HF_CONFIG.configPath
+                }
+            };
+
+            localStorage.setItem('videoAnalysisSelection', JSON.stringify(selectionData));
+            
+            showMessage('Starting analysis...', 'loading');
+            console.log('Starting analysis with data from:', dataFileUrl);
+            
+            // Navigate to visualization page
+            setTimeout(() => {
+                window.location.href = 'visualization.html';
+            }, 1000);
+        }
+
+        // Initialize the application
+        async function initializeApp() {
+            const success = await loadDatasetConfig();
+            if (success) {
+                enableInterface();
+            }
+        }
+
+        // Event listeners
+        document.getElementById('datasetSelector').addEventListener('change', function(e) {
+            currentSelection.dataset = e.target.value;
+            updateLabels(e.target.value);
+        });
+
+        document.getElementById('modelSelector').addEventListener('change', function(e) {
+            currentSelection.model = e.target.value;
+            const modelStatus = document.getElementById('modelStatus');
+            
+            if (e.target.value) {
+                modelStatus.textContent = `Selected: ${e.target.value}`;
+                modelStatus.className = 'selection-status';
+            } else {
+                modelStatus.textContent = 'No model selected';
+                modelStatus.className = 'selection-status incomplete';
+            }
+            
+            checkStartButton();
+        });
+
+        document.getElementById('startAnalysisBtn').addEventListener('click', startAnalysis);
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
