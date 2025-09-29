@@ -220,7 +220,6 @@
             padding: 30px;
         }
 
-        /* Grid view styles */
         .video-grid {
             display: grid;
             gap: 20px;
@@ -378,7 +377,6 @@
             color: white;
         }
 
-        /* List view styles */
         .video-list {
             display: none;
         }
@@ -547,6 +545,19 @@
             </div>
 
             <div class="control-group">
+                <label>Selection Mode:</label>
+                <div class="view-toggle">
+                    <button class="control-btn active" data-mode="sorted">Top Sorted</button>
+                    <button class="control-btn" data-mode="shuffled">Seeded Shuffle</button>
+                </div>
+            </div>
+
+            <div class="control-group" id="seedControl" style="display: none;">
+                <label for="randomSeed">Random Seed:</label>
+                <input type="number" id="randomSeed" class="control-input" value="42" placeholder="Enter seed" min="0">
+            </div>
+
+            <div class="control-group">
                 <label>Columns per Row:</label>
                 <div class="view-toggle">
                     <button class="control-btn" data-cols="2">2 Columns</button>
@@ -597,18 +608,14 @@
         </div>
 
         <div class="video-content">
-            <!-- Grid view -->
             <div id="videoGrid" class="video-grid cols-3"></div>
-            
-            <!-- List view -->
             <div id="videoList" class="video-list"></div>
         </div>
     </div>
 
     <script>
-        // Global variables
         let videoData = [];
-        let originalVideoData = []; // 保存原始数据
+        let originalVideoData = [];
         let currentThreshold = 0.85;
         let sortedVideos = [];
         let currentView = 'grid';
@@ -617,17 +624,16 @@
         let columnsPerRow = 3;
         let totalPages = 1;
         let selectionData = null;
+        let selectionMode = 'sorted';
+        let randomSeed = 42;
 
-        // Get base URL
         const baseUrl = window.location.href.split('/').slice(0, -1).join('/');
 
-        // Message display function
         function showMessage(message, type = 'info') {
             const errorDiv = document.getElementById('errorMessage');
             const successDiv = document.getElementById('successMessage');
             const loadingDiv = document.getElementById('loadingMessage');
             
-            // Hide all messages
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
             loadingDiv.style.display = 'none';
@@ -651,7 +657,6 @@
             }
         }
 
-        // Get selection data from localStorage
         function getSelectionData() {
             const stored = localStorage.getItem('videoAnalysisSelection');
             if (!stored) {
@@ -673,18 +678,15 @@
             }
         }
 
-        // Load JSON data
         async function loadJsonData() {
             if (!selectionData) return;
 
             try {
                 showMessage('Loading data...', 'loading');
                 
-                // Build JSON file URL
                 const jsonUrl = `https://huggingface.co/datasets/syCen/score_visualization/raw/main/dataset/${selectionData.dataset}/${selectionData.label}/${selectionData.model}.json`;
                 console.log('Loading JSON:', jsonUrl);
                 
-                // Check if file exists first
                 const response = await fetch(jsonUrl);
                 if (!response.ok) {
                     let errorMessage = `File loading failed (HTTP ${response.status})`;
@@ -709,7 +711,6 @@
                 
                 let errorMessage = 'Failed to load JSON data: ' + error.message;
                 
-                // Add debug information
                 if (error.message.includes('404') || error.message.includes('does not exist')) {
                     errorMessage += `\n\nDebug info:\n`;
                     errorMessage += `- Dataset: ${selectionData.dataset}\n`;
@@ -723,13 +724,10 @@
                 }
                 
                 showMessage(errorMessage, 'error');
-                
-                // Show detailed debug panel
                 showDebugPanel();
             }
         }
 
-        // Show debug panel
         function showDebugPanel() {
             const debugPanel = document.createElement('div');
             debugPanel.className = 'debug-panel';
@@ -771,7 +769,6 @@
             document.querySelector('.controls').appendChild(debugPanel);
         }
 
-        // Test if file exists
         window.testFileExists = async function(url) {
             const resultDiv = document.getElementById('testResult');
             resultDiv.innerHTML = '<div style="color: #856404;">Testing...</div>';
@@ -788,12 +785,9 @@
             }
         };
 
-        // Process JSON data
         function processJsonData(jsonData) {
             try {
-                // Detect JSON format type
                 if (jsonData.scores && Array.isArray(jsonData.scores)) {
-                    // New format: contains metadata and scores
                     originalVideoData = jsonData.scores.map(item => ({
                         name: item.sample_id,
                         url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
@@ -802,7 +796,6 @@
                         error: item.error
                     }));
                 } else if (Array.isArray(jsonData) && jsonData[0]?.sample_id) {
-                    // New format: direct scores array
                     originalVideoData = jsonData.map(item => ({
                         name: item.sample_id,
                         url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
@@ -816,7 +809,6 @@
                 
                 console.log(`Original data loaded: ${originalVideoData.length} videos`);
                 
-                // Apply parameter filtering
                 applyParameterFiltering();
                 updateVisualization();
                 
@@ -826,46 +818,66 @@
             }
         }
 
-        // Apply parameter filtering
+        function seededRandom(seed) {
+            let state = seed;
+            return function() {
+                state = (state * 1664525 + 1013904223) % 4294967296;
+                return state / 4294967296;
+            };
+        }
+
+        function shuffleWithSeed(array, seed) {
+            const shuffled = [...array];
+            const random = seededRandom(seed);
+            
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            
+            return shuffled;
+        }
+
         function applyParameterFiltering() {
             if (!selectionData || !originalVideoData.length) return;
         
             const { segment, maxCases } = selectionData;
         
-            console.log(`Applying parameter filtering (score-based): segment=${segment}, maxCases=${maxCases}`);
+            console.log(`Applying parameter filtering (${selectionMode} mode): segment=${segment}, maxCases=${maxCases}, seed=${randomSeed}`);
             console.log(`Original data length: ${originalVideoData.length}`);
         
-            // Sort videos by score descending
             const sortedData = [...originalVideoData].sort((a, b) => b.score - a.score);
         
             videoData = [];
         
-            // Loop through score bins, e.g. 0.9–1.0, 0.8–0.9, ...
             for (let high = 1.0; high > 0; high -= segment) {
                 const low = high - segment;
         
-                // Collect videos whose score falls into this bin
                 const segmentVideos = sortedData.filter(v => v.score > low && v.score <= high);
         
                 if (segmentVideos.length > 0) {
-                    // Shuffle the videos
-                    const shuffledSegment = [...segmentVideos].sort(() => Math.random() - 0.5);
-        
-                    // Pick up to maxCases
-                    const limitedSegment = shuffledSegment.slice(0, maxCases);
-        
-                    videoData.push(...limitedSegment);
-        
-                    console.log(
-                        `Score bin ${low.toFixed(2)}–${high.toFixed(2)}: ${segmentVideos.length} videos, taking ${limitedSegment.length}`
-                    );
+                    let selectedVideos;
+                    
+                    if (selectionMode === 'sorted') {
+                        selectedVideos = segmentVideos.slice(0, maxCases);
+                        console.log(
+                            `Score bin ${low.toFixed(2)}–${high.toFixed(2)}: ${segmentVideos.length} videos, taking top ${selectedVideos.length} (sorted mode)`
+                        );
+                    } else {
+                        const shuffledSegment = shuffleWithSeed(segmentVideos, randomSeed);
+                        selectedVideos = shuffledSegment.slice(0, maxCases);
+                        console.log(
+                            `Score bin ${low.toFixed(2)}–${high.toFixed(2)}: ${segmentVideos.length} videos, taking ${selectedVideos.length} (shuffled with seed ${randomSeed})`
+                        );
+                    }
+                    
+                    videoData.push(...selectedVideos);
                 }
             }
         
             console.log(`Final filtered video count: ${videoData.length}`);
         }
 
-        // Video debug functions
         window.handleVideoLoadStart = function(video) {
             const status = video.parentElement.querySelector('.video-status');
             status.textContent = 'Loading...';
@@ -903,7 +915,6 @@
             status.className = 'video-status error';
         };
 
-        // Page button event listeners
         document.getElementById('prevPage').addEventListener('click', function() {
             if (currentPage > 1) {
                 currentPage--;
@@ -918,24 +929,20 @@
             }
         });
 
-        // Videos per page selector
         document.getElementById('videosPerPage').addEventListener('change', function() {
             videosPerPage = parseInt(this.value);
-            currentPage = 1; // Reset to first page
+            currentPage = 1;
             updateVisualization();
         });
 
-        // Column control buttons
         document.querySelectorAll('.control-btn[data-cols]').forEach(btn => {
             btn.addEventListener('click', function() {
                 const cols = parseInt(this.dataset.cols);
                 columnsPerRow = cols;
                 
-                // Update button states
                 document.querySelectorAll('.control-btn[data-cols]').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 
-                // Update grid classes
                 const videoGrid = document.getElementById('videoGrid');
                 videoGrid.className = `video-grid cols-${cols}`;
                 
@@ -943,17 +950,50 @@
             });
         });
 
-        // View toggle buttons
+        document.querySelectorAll('.control-btn[data-mode]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const mode = this.dataset.mode;
+                selectionMode = mode;
+                
+                document.querySelectorAll('.control-btn[data-mode]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const seedControl = document.getElementById('seedControl');
+                if (mode === 'shuffled') {
+                    seedControl.style.display = 'flex';
+                } else {
+                    seedControl.style.display = 'none';
+                }
+                
+                currentPage = 1;
+                applyParameterFiltering();
+                updateVisualization();
+                
+                showMessage(`Switched to ${mode === 'sorted' ? 'Top Sorted' : 'Seeded Shuffle'} mode`, 'success');
+            });
+        });
+
+        document.getElementById('randomSeed').addEventListener('input', function(e) {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value) && value >= 0) {
+                randomSeed = value;
+                
+                if (selectionMode === 'shuffled') {
+                    currentPage = 1;
+                    applyParameterFiltering();
+                    updateVisualization();
+                }
+            }
+        });
+
         document.querySelectorAll('.view-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const view = this.dataset.view;
                 currentView = view;
                 
-                // Update button states
                 document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 
-                // Switch views
                 if (view === 'grid') {
                     document.getElementById('videoGrid').style.display = 'grid';
                     document.getElementById('videoList').classList.remove('active');
@@ -1126,17 +1166,15 @@
             }
         }
 
-        // Threshold input event listener
         document.getElementById('threshold').addEventListener('input', function(e) {
             const value = parseFloat(e.target.value);
             if (!isNaN(value) && value >= 0 && value <= 1) {
                 currentThreshold = value;
-                currentPage = 1; // Reset to first page
+                currentPage = 1;
                 updateVisualization();
             }
         });
 
-        // Initialize
         function initialize() {
             selectionData = getSelectionData();
             if (selectionData) {
@@ -1147,7 +1185,6 @@
             }
         }
 
-        // Initialize after page load
         document.addEventListener('DOMContentLoaded', initialize);
     </script>
 </body>
