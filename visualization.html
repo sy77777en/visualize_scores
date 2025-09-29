@@ -829,36 +829,39 @@
         // Apply parameter filtering
         function applyParameterFiltering() {
             if (!selectionData || !originalVideoData.length) return;
-
+        
             const { segment, maxCases } = selectionData;
-            
-            console.log(`Applying parameter filtering: segment=${segment}, maxCases=${maxCases}`);
+        
+            console.log(`Applying parameter filtering (score-based): segment=${segment}, maxCases=${maxCases}`);
             console.log(`Original data length: ${originalVideoData.length}`);
-            
-            // Sort by score (descending)
+        
+            // Sort videos by score descending
             const sortedData = [...originalVideoData].sort((a, b) => b.score - a.score);
-            
-            // Calculate segment size
-            const segmentSize = Math.max(1, Math.ceil(sortedData.length * segment));
-            console.log(`Calculated segment size: ${segmentSize}`);
-            
-            // Apply filtering based on logic
+        
             videoData = [];
-            
-            if (segment === 1) {
-                // If segment is 1 (100%), just take maxCases from top
-                videoData = sortedData.slice(0, maxCases);
-            } else {
-                // Split into segments and take maxCases from each segment
-                for (let i = 0; i < sortedData.length; i += segmentSize) {
-                    const segmentVideos = sortedData.slice(i, i + segmentSize);
-                    const limitedSegment = segmentVideos.slice(0, maxCases);
+        
+            // Loop through score bins, e.g. 0.9–1.0, 0.8–0.9, ...
+            for (let high = 1.0; high > 0; high -= segment) {
+                const low = high - segment;
+        
+                // Collect videos whose score falls into this bin
+                const segmentVideos = sortedData.filter(v => v.score > low && v.score <= high);
+        
+                if (segmentVideos.length > 0) {
+                    // Shuffle the videos
+                    const shuffledSegment = [...segmentVideos].sort(() => Math.random() - 0.5);
+        
+                    // Pick up to maxCases
+                    const limitedSegment = shuffledSegment.slice(0, maxCases);
+        
                     videoData.push(...limitedSegment);
-                    
-                    console.log(`Segment ${Math.floor(i/segmentSize) + 1}: ${segmentVideos.length} videos, taking ${limitedSegment.length}`);
+        
+                    console.log(
+                        `Score bin ${low.toFixed(2)}–${high.toFixed(2)}: ${segmentVideos.length} videos, taking ${limitedSegment.length}`
+                    );
                 }
             }
-            
+        
             console.log(`Final filtered video count: ${videoData.length}`);
         }
 
