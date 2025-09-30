@@ -776,7 +776,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="cutCount">0</div>
-                    <div class="stat-label">Marked as Cut</div>
+                    <div class="stat-label">Positive Cases</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="averageScore">0</div>
@@ -1454,16 +1454,17 @@
                 videoGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #6c757d; font-size: 1.2em;">No video data available</div>';
                 return;
             }
-
+        
             videoGrid.innerHTML = '';
             const currentPageVideos = getCurrentPageVideos();
-
+        
             currentPageVideos.forEach((video, pageIndex) => {
                 const globalIndex = (currentPage - 1) * videosPerPage + pageIndex;
-                const isCut = video.score > currentThreshold;
+                const isPositive = video.score > currentThreshold;  // 是否为正类
+                const labelName = selectionData.label;  // label名称
                 
                 const videoCard = document.createElement('div');
-                videoCard.className = `video-card ${isCut ? 'cut' : ''}`;
+                videoCard.className = `video-card ${isPositive ? 'cut' : ''}`;
                 videoCard.style.position = 'relative';
                 videoCard.onclick = function(e) {
                     if (e.target.tagName !== 'VIDEO' && e.target.tagName !== 'A') {
@@ -1489,15 +1490,15 @@
                         </div>
                     </div>
                     <div class="video-info">
-                        <div class="video-title ${isCut ? 'cut' : ''}" title="${video.name}">
+                        <div class="video-title ${isPositive ? 'cut' : ''}" title="${video.name}">
                             <a href="${video.url}" target="_blank" title="Click to access video link" onclick="event.stopPropagation()">
                                 ${video.name}
                             </a>
                         </div>
                         <div class="video-score-display">
                             <div class="score-badge">${video.score.toFixed(4)}</div>
-                            <div class="cut-status ${isCut ? 'cut-true' : 'cut-false'}">
-                                ${isCut ? 'CUT' : 'KEEP'}
+                            <div class="cut-status ${isPositive ? 'cut-true' : 'cut-false'}">
+                                ${labelName}: ${isPositive ? 'YES' : 'NO'}
                             </div>
                         </div>
                     </div>
@@ -1514,31 +1515,33 @@
                 videoList.innerHTML = '<div style="text-align: center; padding: 50px; color: #6c757d; font-size: 1.2em;">No video data available</div>';
                 return;
             }
-
+        
             videoList.innerHTML = '';
             const currentPageVideos = getCurrentPageVideos();
-
+        
             currentPageVideos.forEach((video, pageIndex) => {
                 const globalIndex = (currentPage - 1) * videosPerPage + pageIndex;
-                const isCut = video.score > currentThreshold;
+                const isPositive = video.score > currentThreshold;
+                const labelName = selectionData.label;
                 
                 const videoItem = document.createElement('div');
-                videoItem.className = `video-item ${isCut ? 'cut' : ''}`;
+                videoItem.className = `video-item ${isPositive ? 'cut' : ''}`;
                 videoItem.onclick = function(e) {
                     if (e.target.tagName !== 'A') {
                         showVideoLabels(video);
                     }
                 };
+                
                 videoItem.innerHTML = `
                     <div class="video-rank">#${globalIndex + 1}</div>
-                    <div class="video-name ${isCut ? 'cut' : ''}" title="${video.name}">
+                    <div class="video-name ${isPositive ? 'cut' : ''}" title="${video.name}">
                         <a href="${video.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${video.name}</a>
                         ${video.method ? `<small style="display: block; color: #6c757d; font-size: 0.8em;">Method: ${video.method}</small>` : ''}
                         ${video.error ? `<small style="display: block; color: #dc3545; font-size: 0.8em;">Error: ${video.error}</small>` : ''}
                     </div>
                     <div class="video-score">${video.score.toFixed(4)}</div>
-                    <div class="cut-indicator ${isCut ? 'cut-true' : 'cut-false'}">
-                        ${isCut ? 'CUT' : 'KEEP'}
+                    <div class="cut-indicator ${isPositive ? 'cut-true' : 'cut-false'}">
+                        ${labelName}: ${isPositive ? 'YES' : 'NO'}
                     </div>
                 `;
                 
