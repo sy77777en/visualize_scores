@@ -865,26 +865,50 @@
         function processJsonData(jsonData) {
             try {
                 if (jsonData.scores && Array.isArray(jsonData.scores)) {
-                    originalVideoData = jsonData.scores.map(item => ({
-                        name: item.sample_id,
-                        url: videosBaseFolder + item.sample_id,
-                        score: parseFloat(item.score),
-                        method: item.method,
-                        error: item.error
-                    }));
-                } else if (Array.isArray(jsonData) && jsonData[0]?.sample_id) {
-                    originalVideoData = jsonData.map(item => ({
-                        name: item.sample_id,
-                        url: videosBaseFolder + item.sample_id,
-                        score: parseFloat(item.score),
-                        method: item.method,
-                        error: item.error
-                    }));
+                    originalVideoData = jsonData.scores.map(item => {
+                        let fileName;
+                        if (item.sample_id) {
+                            fileName = item.sample_id;
+                        } else if (item.video_path) {
+                            fileName = item.video_path.split('/').pop();
+                        } else {
+                            throw new Error('Neither sample_id nor video_path found in data');
+                        }
+                        
+                        return {
+                            name: fileName,
+                            url: videosBaseFolder + fileName,
+                            score: parseFloat(item.score),
+                            method: item.method,
+                            error: item.error
+                        };
+                    });
+                } else if (Array.isArray(jsonData)) {
+                    originalVideoData = jsonData.map(item => {
+                        let fileName;
+                        if (item.sample_id) {
+                            fileName = item.sample_id;
+                        } else if (item.video_path) {
+                            fileName = item.video_path.split('/').pop();
+                        } else {
+                            throw new Error('Neither sample_id nor video_path found in data');
+                        }
+                        
+                        return {
+                            name: fileName,
+                            url: videosBaseFolder + fileName,
+                            score: parseFloat(item.score),
+                            method: item.method,
+                            error: item.error
+                        };
+                    });
                 } else {
-                    throw new Error('Unsupported JSON format. Please ensure data contains sample_id and score fields.');
+                    throw new Error('Unsupported JSON format. Please ensure data contains sample_id or video_path and score fields.');
                 }
                 
                 console.log(`Original data loaded: ${originalVideoData.length} videos`);
+                console.log(`Video URLs will use base folder: ${videosBaseFolder}`);
+                console.log(`Sample video URL: ${originalVideoData[0]?.url}`);
                 
                 applyParameterFiltering();
                 updateVisualization();
