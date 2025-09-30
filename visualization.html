@@ -536,6 +536,132 @@
             }
         }
 
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .label-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .label-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .label-name {
+            font-weight: 600;
+            color: #495057;
+            flex: 1;
+        }
+        
+        .label-value {
+            font-weight: bold;
+            color: #4facfe;
+            padding: 4px 12px;
+            background: white;
+            border-radius: 12px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .no-labels-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .video-card {
+            cursor: pointer;
+        }
+        
+        .video-item {
+            cursor: pointer;
+        }
+        
         @media (max-width: 768px) {
             .video-grid.cols-2,
             .video-grid.cols-3,
@@ -565,6 +691,10 @@
                 margin-left: 0;
                 margin-top: 15px;
                 width: 100%;
+            }
+            
+            .modal-content {
+                max-width: 95%;
             }
         }
     </style>
@@ -682,6 +812,18 @@
         </div>
     </div>
 
+    <div id="labelModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Video Labels</h2>
+                <button class="modal-close" onclick="closeLabelModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="no-labels-message">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         let videoData = [];
         let originalVideoData = [];
@@ -697,7 +839,8 @@
         let randomSeed = 42;
         let segmentStats = [];
         let videosBaseFolder = 'https://huggingface.co/datasets/syCen/score_visualization/raw/main/dataset/';
-
+        let labelsData = null;
+        
         const baseUrl = window.location.href.split('/').slice(0, -1).join('/');
 
         function showMessage(message, type = 'info') {
@@ -780,6 +923,9 @@
                 }
                 
                 processJsonData(jsonData);
+
+                // Load labels data
+                await loadLabelsData();
                 
                 showMessage(`Successfully loaded ${originalVideoData.length} video data, filtered to ${videoData.length} videos`, 'success');
                 
@@ -861,6 +1007,93 @@
                 resultDiv.innerHTML = `<div style="color: #721c24; padding: 10px; background: #f8d7da; border-radius: 4px;">❌ Network error: ${error.message}</div>`;
             }
         };
+
+        async function loadLabelsData() {
+            try {
+                const labelsUrl = 'https://huggingface.co/datasets/syCen/score_visualization/raw/main/labels.json';
+                console.log('Loading labels from:', labelsUrl);
+                
+                const response = await fetch(labelsUrl);
+                if (!response.ok) {
+                    console.warn(`Labels file not found (HTTP ${response.status}). Label display will be unavailable.`);
+                    labelsData = null;
+                    return;
+                }
+                
+                labelsData = await response.json();
+                console.log(`Labels data loaded successfully. ${Object.keys(labelsData).length} videos have labels.`);
+            } catch (error) {
+                console.warn('Failed to load labels data:', error.message);
+                labelsData = null;
+            }
+        }
+        
+        function getVideoIdFromName(videoName) {
+            return videoName.replace(/\.(mp4|avi|mov|webm)$/i, '');
+        }
+        
+        function showVideoLabels(video) {
+            const modal = document.getElementById('labelModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            const videoId = getVideoIdFromName(video.name);
+            
+            if (!labelsData) {
+                modalBody.innerHTML = `
+                    <div class="no-labels-message">
+                        <p style="font-size: 1.1em; margin-bottom: 10px;">Labels data not available</p>
+                        <p style="color: #6c757d;">The labels.json file could not be loaded.</p>
+                    </div>
+                `;
+            } else if (!labelsData[videoId]) {
+                modalBody.innerHTML = `
+                    <div class="no-labels-message">
+                        <p style="font-size: 1.1em; margin-bottom: 10px;">No labels found</p>
+                        <p style="color: #6c757d;">No labels available for video:</p>
+                        <p style="font-weight: 600; margin-top: 10px;">${videoId}</p>
+                    </div>
+                `;
+            } else {
+                const labels = labelsData[videoId];
+                const labelEntries = Object.entries(labels);
+                
+                modalBody.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <strong style="color: #495057;">Video ID:</strong> 
+                        <span style="color: #4facfe;">${videoId}</span>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong style="color: #495057;">Total Labels: ${labelEntries.length}</strong>
+                    </div>
+                    ${labelEntries.map(([key, value]) => `
+                        <div class="label-item">
+                            <div class="label-name">${key}</div>
+                            <div class="label-value">${value}</div>
+                        </div>
+                    `).join('')}
+                `;
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        window.closeLabelModal = function() {
+            const modal = document.getElementById('labelModal');
+            modal.classList.remove('active');
+        };
+        
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('labelModal');
+            if (e.target === modal) {
+                closeLabelModal();
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLabelModal();
+            }
+        });
 
         function processJsonData(jsonData) {
             try {
@@ -1232,6 +1465,11 @@
                 const videoCard = document.createElement('div');
                 videoCard.className = `video-card ${isCut ? 'cut' : ''}`;
                 videoCard.style.position = 'relative';
+                videoCard.onclick = function(e) {
+                    if (e.target.tagName !== 'VIDEO' && e.target.tagName !== 'A') {
+                        showVideoLabels(video);
+                    }
+                };
                 
                 videoCard.innerHTML = `
                     <div class="video-rank">#${globalIndex + 1}</div>
@@ -1252,7 +1490,7 @@
                     </div>
                     <div class="video-info">
                         <div class="video-title ${isCut ? 'cut' : ''}" title="${video.name}">
-                            <a href="${video.url}" target="_blank" title="Click to access video link">
+                            <a href="${video.url}" target="_blank" title="Click to access video link" onclick="event.stopPropagation()">
                                 ${video.name}
                             </a>
                         </div>
@@ -1286,11 +1524,15 @@
                 
                 const videoItem = document.createElement('div');
                 videoItem.className = `video-item ${isCut ? 'cut' : ''}`;
-                
+                videoItem.onclick = function(e) {
+                    if (e.target.tagName !== 'A') {
+                        showVideoLabels(video);
+                    }
+                };
                 videoItem.innerHTML = `
                     <div class="video-rank">#${globalIndex + 1}</div>
                     <div class="video-name ${isCut ? 'cut' : ''}" title="${video.name}">
-                        <a href="${video.url}" target="_blank" rel="noopener noreferrer">${video.name}</a>
+                        <a href="${video.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${video.name}</a>
                         ${video.method ? `<small style="display: block; color: #6c757d; font-size: 0.8em;">Method: ${video.method}</small>` : ''}
                         ${video.error ? `<small style="display: block; color: #dc3545; font-size: 0.8em;">Error: ${video.error}</small>` : ''}
                     </div>
