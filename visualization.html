@@ -696,6 +696,7 @@
         let selectionMode = 'sorted';
         let randomSeed = 42;
         let segmentStats = [];
+        let videosBaseFolder = 'https://huggingface.co/datasets/syCen/score_visualization/raw/main/dataset/';
 
         const baseUrl = window.location.href.split('/').slice(0, -1).join('/');
 
@@ -767,7 +768,13 @@
                 }
                 
                 const jsonData = await response.json();
-                
+                if (jsonData.metadata && jsonData.metadata.videos_base_folder) {
+                    videosBaseFolder = jsonData.metadata.videos_base_folder;
+                    console.log('Using videos base folder from metadata:', videosBaseFolder);
+                } else {
+                    videosBaseFolder = 'https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/';
+                    console.warn('No videos_base_folder found in metadata, using default:', videosBaseFolder);
+                }
                 if (!jsonData) {
                     throw new Error('JSON file is empty or format error');
                 }
@@ -860,7 +867,7 @@
                 if (jsonData.scores && Array.isArray(jsonData.scores)) {
                     originalVideoData = jsonData.scores.map(item => ({
                         name: item.sample_id,
-                        url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
+                        url: videosBaseFolder + item.sample_id,
                         score: parseFloat(item.score),
                         method: item.method,
                         error: item.error
@@ -868,7 +875,7 @@
                 } else if (Array.isArray(jsonData) && jsonData[0]?.sample_id) {
                     originalVideoData = jsonData.map(item => ({
                         name: item.sample_id,
-                        url: `https://huggingface.co/datasets/syCen/camerabench_cut/resolve/main/${item.sample_id}`,
+                        url: videosBaseFolder + item.sample_id,
                         score: parseFloat(item.score),
                         method: item.method,
                         error: item.error
