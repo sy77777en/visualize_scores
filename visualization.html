@@ -698,6 +698,32 @@
             background: #e9ecef;
             transform: translateX(5px);
         }
+
+        .label-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            line-height: 1.5;
+            max-width: 400px;
+            z-index: 1000;
+            pointer-events: none;
+            white-space: normal;
+            word-wrap: break-word;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .label-tooltip.show {
+            opacity: 1;
+        }
+        
+        .label-item {
+            position: relative;
+        }
         
         .label-name {
             font-weight: 600;
@@ -907,9 +933,25 @@
         let segmentStats = [];
         let videosBaseFolder = 'https://huggingface.co/datasets/syCen/score_visualization/raw/main/dataset/';
         let labelsCache = {};
+        let labelDefinitions = {};
         
         const baseUrl = window.location.href.split('/').slice(0, -1).join('/');
 
+        async function loadLabelDefinitions() {
+            try {
+                const definitionsUrl = 'https://huggingface.co/datasets/syCen/score_visualization/raw/main/label_definitions.json';
+                const response = await fetch(definitionsUrl);
+                if (!response.ok) {
+                    console.warn('Label definitions file not found');
+                    return;
+                }
+                labelDefinitions = await response.json();
+                console.log(`Label definitions loaded: ${Object.keys(labelDefinitions).length} definitions`);
+            } catch (error) {
+                console.warn('Failed to load label definitions:', error.message);
+            }
+        }
+        
         function showMessage(message, type = 'info') {
             const errorDiv = document.getElementById('errorMessage');
             const successDiv = document.getElementById('successMessage');
@@ -1079,6 +1121,27 @@
             return videoName;
         }
 
+        function createLabelTooltip(labelKey) {
+            const definition = labelDefinitions[labelKey];
+            if (!definition) return '';
+            return `<div class="label-tooltip">${definition}</div>`;
+        }
+        
+        function attachTooltipListeners() {
+            document.querySelectorAll('.label-item[data-label-key]').forEach(item => {
+                const tooltip = item.querySelector('.label-tooltip');
+                if (!tooltip) return;
+                
+                item.addEventListener('mouseenter', function() {
+                    tooltip.classList.add('show');
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    tooltip.classList.remove('show');
+                });
+            });
+        }
+        
         function formatLabelName(labelKey) {
             // Extract the last part after the final dot
             const parts = labelKey.split('.');
@@ -1221,8 +1284,9 @@
                             <h4 style="color: #495057; font-size: 1.3em; margin-bottom: 8px; font-weight: 600; text-align: center;">${groupTitles[groupName]}</h4>
                             <div class="labels-grid">
                                 ${labels.map(([key, value]) => `
-                                    <div class="label-item" style="background: inherit; border-left: 3px solid inherit;">
+                                    <div class="label-item" data-label-key="${key}" style="background: inherit; border-left: 3px solid inherit; ${labelDefinitions[key] ? 'cursor: help;' : ''}">
                                         <div class="label-name" style="color: inherit; font-size: 0.75em;">${formatLabelName(key)}</div>
+                                        ${createLabelTooltip(key)}
                                     </div>
                                 `).join('')}
                             </div>
