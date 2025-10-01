@@ -1056,6 +1056,10 @@
             } else {
                 const labels = labelsData[videoId];
                 const labelEntries = Object.entries(labels);
+
+                const trueLabels = labelEntries.filter(([key, value]) => value === true);
+                const falseLabels = labelEntries.filter(([key, value]) => value === false);
+                const nullLabels = labelEntries.filter(([key, value]) => value === null);
                 
                 modalBody.innerHTML = `
                     <div style="margin-bottom: 15px;">
@@ -1064,13 +1068,46 @@
                     </div>
                     <div style="margin-bottom: 10px;">
                         <strong style="color: #495057;">Total Labels: ${labelEntries.length}</strong>
+                        <span style="margin-left: 15px; color: #51cf66;">✓ True: ${trueLabels.length}</span>
+                        <span style="margin-left: 10px; color: #333;">✗ False: ${falseLabels.length}</span>
+                        <span style="margin-left: 10px; color: #adb5bd;">○ Null: ${nullLabels.length}</span>
                     </div>
-                    ${labelEntries.map(([key, value]) => `
-                        <div class="label-item">
-                            <div class="label-name">${key}</div>
-                            <div class="label-value">${value}</div>
+                    
+                    ${trueLabels.length > 0 ? `
+                        <div style="margin-top: 20px; margin-bottom: 10px;">
+                            <strong style="color: #51cf66; font-size: 1.1em;">✓ True Labels</strong>
                         </div>
-                    `).join('')}
+                        ${trueLabels.map(([key, value]) => `
+                            <div class="label-item" style="background: #d4edda; border-left: 3px solid #51cf66;">
+                                <div class="label-name" style="color: #155724;">${key}</div>
+                                <div class="label-value" style="background: #51cf66; color: white;">TRUE</div>
+                            </div>
+                        `).join('')}
+                    ` : ''}
+                    
+                    ${falseLabels.length > 0 ? `
+                        <div style="margin-top: 20px; margin-bottom: 10px;">
+                            <strong style="color: #333; font-size: 1.1em;">✗ False Labels</strong>
+                        </div>
+                        ${falseLabels.map(([key, value]) => `
+                            <div class="label-item" style="background: #f8f9fa;">
+                                <div class="label-name" style="color: #333;">${key}</div>
+                                <div class="label-value" style="background: #6c757d; color: white;">FALSE</div>
+                            </div>
+                        `).join('')}
+                    ` : ''}
+                    
+                    ${nullLabels.length > 0 ? `
+                        <div style="margin-top: 20px; margin-bottom: 10px;">
+                            <strong style="color: #adb5bd; font-size: 1.1em;">○ Null Labels</strong>
+                        </div>
+                        ${nullLabels.map(([key, value]) => `
+                            <div class="label-item" style="background: #f8f9fa; opacity: 0.7;">
+                                <div class="label-name" style="color: #adb5bd;">${key}</div>
+                                <div class="label-value" style="background: #dee2e6; color: #6c757d;">NULL</div>
+                            </div>
+                        `).join('')}
+                    ` : ''}
                 `;
             }
             
