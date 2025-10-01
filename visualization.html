@@ -641,6 +641,47 @@
         .modal-body {
             padding: 20px;
         }
+
+        .modal-video-container {
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        .modal-video-container video {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+        
+        .labels-section {
+            margin-top: 25px;
+        }
+        
+        .labels-section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid;
+        }
+        
+        .labels-section-title.true {
+            color: #51cf66;
+            border-bottom-color: #51cf66;
+        }
+        
+        .labels-section-title.false {
+            color: #333;
+            border-bottom-color: #dee2e6;
+        }
+        
+        .labels-section-title.null {
+            color: #adb5bd;
+            border-bottom-color: #e9ecef;
+        }
         
         .label-item {
             display: flex;
@@ -1150,11 +1191,21 @@
                 const nullLabels = otherLabels.filter(([key, value]) => value === null);
                 
                 modalBody.innerHTML = `
+                    <!-- Video Player -->
+                    <div class="modal-video-container">
+                        <video controls autoplay loop muted>
+                            <source src="${video.url}" type="video/mp4">
+                            Your browser does not support video playback
+                        </video>
+                    </div>
+                    
+                    <!-- Video ID -->
                     <div style="margin-bottom: 15px;">
                         <strong style="color: #495057;">Video ID:</strong> 
                         <span style="color: #4facfe;">${videoId}</span>
                     </div>
                     
+                    <!-- CameraPizza URL -->
                     ${camerapizzaUrl ? `
                         <div style="margin-bottom: 15px; padding: 12px; background: #e7f3ff; border-radius: 8px; border-left: 3px solid #4facfe;">
                             <strong style="color: #495057;">CameraPizza URL:</strong>
@@ -1164,52 +1215,53 @@
                         </div>
                     ` : ''}
                     
-                    <div style="margin-bottom: 10px;">
+                    <!-- Labels Summary -->
+                    <div style="margin-bottom: 15px;">
                         <strong style="color: #495057;">Total Labels: ${otherLabels.length}</strong>
                         <span style="margin-left: 15px; color: #51cf66;">✓ True: ${trueLabels.length}</span>
                         <span style="margin-left: 10px; color: #333;">✗ False: ${falseLabels.length}</span>
                         <span style="margin-left: 10px; color: #adb5bd;">○ Null: ${nullLabels.length}</span>
                     </div>
                     
+                    <!-- True Labels Section -->
                     ${trueLabels.length > 0 ? `
-                        <div style="margin-top: 20px; margin-bottom: 10px;">
-                            <strong style="color: #51cf66; font-size: 1.1em;">✓ True Labels</strong>
-                        </div>
-                        <div class="labels-grid">
-                            ${trueLabels.map(([key, value]) => `
-                                <div class="label-item" style="background: #d4edda; border-left: 3px solid #51cf66;">
-                                    <div class="label-name" style="color: #155724; font-size: 0.85em;">${formatLabelName(key)}</div>
-                                    <div class="label-value" style="background: #51cf66; color: white; font-size: 0.75em; padding: 3px 8px;">TRUE</div>
-                                </div>
-                            `).join('')}
+                        <div class="labels-section">
+                            <div class="labels-section-title true">✓ True (${trueLabels.length})</div>
+                            <div class="labels-grid">
+                                ${trueLabels.map(([key, value]) => `
+                                    <div class="label-item" style="background: #d4edda; border-left: 3px solid #51cf66;">
+                                        <div class="label-name" style="color: #155724; font-size: 0.9em;">${formatLabelName(key)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
                     ` : ''}
                     
+                    <!-- False Labels Section -->
                     ${falseLabels.length > 0 ? `
-                        <div style="margin-top: 20px; margin-bottom: 10px;">
-                            <strong style="color: #333; font-size: 1.1em;">✗ False Labels</strong>
-                        </div>
-                        <div class="labels-grid">
-                            ${falseLabels.map(([key, value]) => `
-                                <div class="label-item" style="background: #f8f9fa;">
-                                    <div class="label-name" style="color: #333; font-size: 0.85em;">${formatLabelName(key)}</div>
-                                    <div class="label-value" style="background: #6c757d; color: white; font-size: 0.75em; padding: 3px 8px;">FALSE</div>
-                                </div>
-                            `).join('')}
+                        <div class="labels-section">
+                            <div class="labels-section-title false">✗ False (${falseLabels.length})</div>
+                            <div class="labels-grid">
+                                ${falseLabels.map(([key, value]) => `
+                                    <div class="label-item" style="background: #f8f9fa;">
+                                        <div class="label-name" style="color: #333; font-size: 0.9em;">${formatLabelName(key)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
                     ` : ''}
                     
+                    <!-- Null Labels Section -->
                     ${nullLabels.length > 0 ? `
-                        <div style="margin-top: 20px; margin-bottom: 10px;">
-                            <strong style="color: #adb5bd; font-size: 1.1em;">○ Null Labels</strong>
-                        </div>
-                        <div class="labels-grid">
-                            ${nullLabels.map(([key, value]) => `
-                                <div class="label-item" style="background: #f8f9fa; opacity: 0.7;">
-                                    <div class="label-name" style="color: #adb5bd; font-size: 0.85em;">${formatLabelName(key)}</div>
-                                    <div class="label-value" style="background: #dee2e6; color: #6c757d; font-size: 0.75em; padding: 3px 8px;">NULL</div>
-                                </div>
-                            `).join('')}
+                        <div class="labels-section">
+                            <div class="labels-section-title null">○ Null (${nullLabels.length})</div>
+                            <div class="labels-grid">
+                                ${nullLabels.map(([key, value]) => `
+                                    <div class="label-item" style="background: #f8f9fa; opacity: 0.7;">
+                                        <div class="label-name" style="color: #adb5bd; font-size: 0.9em;">${formatLabelName(key)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
                     ` : ''}
                 `;
