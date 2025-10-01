@@ -567,7 +567,7 @@
         
         .labels-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 8px;
         }
         
@@ -1218,11 +1218,11 @@
                     
                     return `
                         <div style="margin-top: 15px;">
-                            <h4 style="color: #495057; font-size: 1em; margin-bottom: 8px; font-weight: 600;">${groupTitles[groupName]}</h4>
+                            <h4 style="color: #495057; font-size: 1.2em; margin-bottom: 8px; font-weight: 600;">${groupTitles[groupName]}</h4>
                             <div class="labels-grid">
                                 ${labels.map(([key, value]) => `
                                     <div class="label-item" style="background: inherit; border-left: 3px solid inherit;">
-                                        <div class="label-name" style="color: inherit; font-size: 0.85em;">${formatLabelName(key)}</div>
+                                        <div class="label-name" style="color: inherit; font-size: 0.75em;">${formatLabelName(key)}</div>
                                     </div>
                                 `).join('')}
                             </div>
