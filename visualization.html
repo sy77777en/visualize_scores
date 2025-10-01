@@ -839,7 +839,7 @@
         let randomSeed = 42;
         let segmentStats = [];
         let videosBaseFolder = 'https://huggingface.co/datasets/syCen/score_visualization/raw/main/dataset/';
-        let labelsData = null;
+        let labelsCache = {};
         
         const baseUrl = window.location.href.split('/').slice(0, -1).join('/');
 
@@ -924,8 +924,6 @@
                 
                 processJsonData(jsonData);
 
-                // Load labels data
-                await loadLabelsData();
                 
                 showMessage(`Successfully loaded ${originalVideoData.length} video data, filtered to ${videoData.length} videos`, 'success');
                 
@@ -1008,41 +1006,84 @@
             }
         };
 
-        async function loadLabelsData() {
-            try {
-                const labelsUrl = 'https://huggingface.co/datasets/syCen/score_visualization/raw/main/labels.json';
-                console.log('Loading labels from:', labelsUrl);
-                
-                const response = await fetch(labelsUrl);
-                if (!response.ok) {
-                    console.warn(`Labels file not found (HTTP ${response.status}). Label display will be unavailable.`);
-                    labelsData = null;
-                    return;
-                }
-                
-                labelsData = await response.json();
-                console.log(`Labels data loaded successfully. ${Object.keys(labelsData).length} videos have labels.`);
-            } catch (error) {
-                console.warn('Failed to load labels data:', error.message);
-                labelsData = null;
-            }
-        }
+        
         
         function getVideoIdFromName(videoName) {
             return videoName.replace(/\.(mp4|avi|mov|webm)$/i, '');
         }
+
+        function getLabelsFileName(videoName) {
+            const firstChar = videoName[0].toLowerCase();
+            
+            // 处理数字（分成两组）
+            if (firstChar >= '0' && firstChar <= '4') return 'labels_0-4.json';
+            if (firstChar >= '5' && firstChar <= '9') return 'labels_5-9.json';
+            
+            // 处理字母
+            if (firstChar >= 'a' && firstChar <= 'b') return 'labels_a-b.json';
+            if (firstChar >= 'c' && firstChar <= 'd') return 'labels_c-d.json';
+            if (firstChar >= 'e' && firstChar <= 'f') return 'labels_e-f.json';
+            if (firstChar >= 'g' && firstChar <= 'h') return 'labels_g-h.json';
+            if (firstChar >= 'i' && firstChar <= 'j') return 'labels_i-j.json';
+            if (firstChar >= 'k' && firstChar <= 'l') return 'labels_k-l.json';
+            if (firstChar >= 'm' && firstChar <= 'n') return 'labels_m-n.json';
+            if (firstChar >= 'o' && firstChar <= 'p') return 'labels_o-p.json';
+            if (firstChar >= 'q' && firstChar <= 'r') return 'labels_q-r.json';
+            if (firstChar >= 's' && firstChar <= 't') return 'labels_s-t.json';
+            if (firstChar >= 'u' && firstChar <= 'v') return 'labels_u-v.json';
+            if (firstChar >= 'w' && firstChar <= 'x') return 'labels_w-x.json';
+            if (firstChar >= 'y' && firstChar <= 'z') return 'labels_y-z.json';
+            
+            // 处理特殊字符
+            return 'labels_special.json';
+        }
         
-        function showVideoLabels(video) {
+        async function loadLabelsForVideo(videoName) {
+            const fileName = getLabelsFileName(videoName);
+            
+            // 如果已经缓存，直接返回
+            if (labelsCache[fileName]) {
+                return labelsCache[fileName];
+            }
+            
+            try {
+                const labelsUrl = `https://huggingface.co/datasets/syCen/score_visualization/resolve/main/labels/${fileName}`;
+                console.log('Loading labels from:', labelsUrl);
+                
+                const response = await fetch(labelsUrl);
+                if (!response.ok) {
+                    console.warn(`Labels file not found (HTTP ${response.status}): ${fileName}`);
+                    return null;
+                }
+                
+                const data = await response.json();
+                labelsCache[fileName] = data;  // 缓存结果
+                console.log(`Labels file loaded: ${fileName}, ${Object.keys(data).length} videos`);
+                return data;
+            } catch (error) {
+                console.warn('Failed to load labels file:', error.message);
+                return null;
+            }
+        }
+        
+        async function showVideoLabels(video) {
             const modal = document.getElementById('labelModal');
             const modalBody = document.getElementById('modalBody');
             
+            // 显示加载中
+            modalBody.innerHTML = '<div class="no-labels-message">Loading labels...</div>';
+            modal.classList.add('active');
+            
             const videoId = getVideoIdFromName(video.name);
+            
+            // 加载对应的labels文件
+            const labelsData = await loadLabelsForVideo(video.name);
             
             if (!labelsData) {
                 modalBody.innerHTML = `
                     <div class="no-labels-message">
                         <p style="font-size: 1.1em; margin-bottom: 10px;">Labels data not available</p>
-                        <p style="color: #6c757d;">The labels.json file could not be loaded.</p>
+                        <p style="color: #6c757d;">The labels file could not be loaded.</p>
                     </div>
                 `;
             } else if (!labelsData[videoId]) {
@@ -1056,7 +1097,7 @@
             } else {
                 const labels = labelsData[videoId];
                 const labelEntries = Object.entries(labels);
-
+        
                 const trueLabels = labelEntries.filter(([key, value]) => value === true);
                 const falseLabels = labelEntries.filter(([key, value]) => value === false);
                 const nullLabels = labelEntries.filter(([key, value]) => value === null);
@@ -1110,8 +1151,6 @@
                     ` : ''}
                 `;
             }
-            
-            modal.classList.add('active');
         }
         
         window.closeLabelModal = function() {
