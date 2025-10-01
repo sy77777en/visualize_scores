@@ -1367,6 +1367,7 @@
                         </div>
                     ` : ''}
                 `;
+                attachTooltipListeners();
             }
         }
         
@@ -1868,7 +1869,7 @@
             if (selectionData) {
                 document.getElementById('currentDatasetInfo').textContent = 
                     `Dataset: ${selectionData.dataset} | Label: ${selectionData.label} | Model: ${selectionData.model} | Segment: ${selectionData.segment} | Max Cases: ${selectionData.maxCases}`;
-                
+                loadLabelDefinitions();
                 loadJsonData();
             }
         }
