@@ -567,7 +567,7 @@
         
         .labels-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
         }
         
@@ -1185,10 +1185,60 @@
                 const camerapizzaUrl = labels.camerapizza_url || null;
                 const otherLabels = labelEntries.filter(([key, value]) => key !== 'camerapizza_url');
         
+                // Function to group labels by prefix
+                function groupLabelsByPrefix(labelsList) {
+                    const groups = {
+                        'cam_setup': [],
+                        'cam_motion': [],
+                        'lighting_setup': []
+                    };
+                    
+                    labelsList.forEach(([key, value]) => {
+                        if (key.startsWith('cam_setup.')) {
+                            groups['cam_setup'].push([key, value]);
+                        } else if (key.startsWith('cam_motion.')) {
+                            groups['cam_motion'].push([key, value]);
+                        } else if (key.startsWith('lighting_setup.')) {
+                            groups['lighting_setup'].push([key, value]);
+                        }
+                    });
+                    
+                    return groups;
+                }
+        
+                // Function to render a group of labels
+                function renderLabelGroup(groupName, labels) {
+                    if (labels.length === 0) return '';
+                    
+                    const groupTitles = {
+                        'cam_setup': 'Camera Setup',
+                        'cam_motion': 'Camera Motion',
+                        'lighting_setup': 'Lighting Setup'
+                    };
+                    
+                    return `
+                        <div style="margin-top: 15px;">
+                            <h4 style="color: #495057; font-size: 1em; margin-bottom: 8px; font-weight: 600;">${groupTitles[groupName]}</h4>
+                            <div class="labels-grid">
+                                ${labels.map(([key, value]) => `
+                                    <div class="label-item" style="background: inherit; border-left: 3px solid inherit;">
+                                        <div class="label-name" style="color: inherit; font-size: 0.85em;">${formatLabelName(key)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+        
                 // Categorize labels by value (true/false/null)
                 const trueLabels = otherLabels.filter(([key, value]) => value === true);
                 const falseLabels = otherLabels.filter(([key, value]) => value === false);
                 const nullLabels = otherLabels.filter(([key, value]) => value === null);
+        
+                // Group each category
+                const trueGroups = groupLabelsByPrefix(trueLabels);
+                const falseGroups = groupLabelsByPrefix(falseLabels);
+                const nullGroups = groupLabelsByPrefix(nullLabels);
                 
                 modalBody.innerHTML = `
                     <!-- Video Player -->
@@ -1225,43 +1275,31 @@
                     
                     <!-- True Labels Section -->
                     ${trueLabels.length > 0 ? `
-                        <div class="labels-section">
+                        <div class="labels-section" style="background: #d4edda; padding: 15px; border-radius: 8px; border-left: 3px solid #51cf66;">
                             <div class="labels-section-title true">✓ True (${trueLabels.length})</div>
-                            <div class="labels-grid">
-                                ${trueLabels.map(([key, value]) => `
-                                    <div class="label-item" style="background: #d4edda; border-left: 3px solid #51cf66;">
-                                        <div class="label-name" style="color: #155724; font-size: 0.9em;">${formatLabelName(key)}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
+                            ${renderLabelGroup('cam_setup', trueGroups.cam_setup)}
+                            ${renderLabelGroup('cam_motion', trueGroups.cam_motion)}
+                            ${renderLabelGroup('lighting_setup', trueGroups.lighting_setup)}
                         </div>
                     ` : ''}
                     
                     <!-- False Labels Section -->
                     ${falseLabels.length > 0 ? `
-                        <div class="labels-section">
+                        <div class="labels-section" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 3px solid #dee2e6;">
                             <div class="labels-section-title false">✗ False (${falseLabels.length})</div>
-                            <div class="labels-grid">
-                                ${falseLabels.map(([key, value]) => `
-                                    <div class="label-item" style="background: #f8f9fa;">
-                                        <div class="label-name" style="color: #333; font-size: 0.9em;">${formatLabelName(key)}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
+                            ${renderLabelGroup('cam_setup', falseGroups.cam_setup)}
+                            ${renderLabelGroup('cam_motion', falseGroups.cam_motion)}
+                            ${renderLabelGroup('lighting_setup', falseGroups.lighting_setup)}
                         </div>
                     ` : ''}
                     
                     <!-- Null Labels Section -->
                     ${nullLabels.length > 0 ? `
-                        <div class="labels-section">
+                        <div class="labels-section" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 3px solid #e9ecef; opacity: 0.7;">
                             <div class="labels-section-title null">○ Null (${nullLabels.length})</div>
-                            <div class="labels-grid">
-                                ${nullLabels.map(([key, value]) => `
-                                    <div class="label-item" style="background: #f8f9fa; opacity: 0.7;">
-                                        <div class="label-name" style="color: #adb5bd; font-size: 0.9em;">${formatLabelName(key)}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
+                            ${renderLabelGroup('cam_setup', nullGroups.cam_setup)}
+                            ${renderLabelGroup('cam_motion', nullGroups.cam_motion)}
+                            ${renderLabelGroup('lighting_setup', nullGroups.lighting_setup)}
                         </div>
                     ` : ''}
                 `;
