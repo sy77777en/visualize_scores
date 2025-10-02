@@ -1162,7 +1162,8 @@
             const firstChar = videoName[0].toLowerCase();
             
             // 处理数字（分成两组）
-            if (firstChar >= '0' && firstChar <= '4') return 'labels_0-4.json';
+            if (firstChar >= '0' && firstChar <= '2') return 'labels_0-2.json';
+            if (firstChar >= '3' && firstChar <= '4') return 'labels_3-4.json';
             if (firstChar >= '5' && firstChar <= '9') return 'labels_5-9.json';
             
             // 处理字母
